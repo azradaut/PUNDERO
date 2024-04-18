@@ -1,0 +1,450 @@
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+
+namespace PUNDERO.Models;
+
+public partial class PunderoContext : DbContext
+{
+    public PunderoContext()
+    {
+    }
+
+    public PunderoContext(DbContextOptions<PunderoContext> options)
+        : base(options)
+    {
+    }
+
+    public virtual DbSet<Account> Accounts { get; set; }
+
+    public virtual DbSet<Assignment> Assignments { get; set; }
+
+    public virtual DbSet<AssignmentType> AssignmentTypes { get; set; }
+
+    public virtual DbSet<Client> Clients { get; set; }
+
+    public virtual DbSet<Coordinator> Coordinators { get; set; }
+
+    public virtual DbSet<Driver> Drivers { get; set; }
+
+    public virtual DbSet<Invoice> Invoices { get; set; }
+
+    public virtual DbSet<InvoiceProduct> InvoiceProducts { get; set; }
+
+    public virtual DbSet<InvoiceStatus> InvoiceStatuses { get; set; }
+
+    public virtual DbSet<Mobile> Mobiles { get; set; }
+
+    public virtual DbSet<Object> Objects { get; set; }
+
+    public virtual DbSet<Product> Products { get; set; }
+
+    public virtual DbSet<Tachograph> Tachographs { get; set; }
+
+    public virtual DbSet<Vehicle> Vehicles { get; set; }
+
+    public virtual DbSet<Warehouse> Warehouses { get; set; }
+
+    public virtual DbSet<WorkingHour> WorkingHours { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-JOEL5NL\\SQLEXPRESS;Database=PUNDERO;Trusted_Connection=True;TrustServerCertificate=True;");
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.HasKey(e => e.IdAccount);
+
+            entity.ToTable("ACCOUNT");
+
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.Email)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("EMAIL");
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("FIRST_NAME");
+            entity.Property(e => e.LastName)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("LAST_NAME");
+            entity.Property(e => e.Password)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("PASSWORD");
+        });
+
+        modelBuilder.Entity<Assignment>(entity =>
+        {
+            entity.HasKey(e => e.IdAssignment);
+
+            entity.ToTable("ASSIGNMENT");
+
+            entity.Property(e => e.IdAssignment).HasColumnName("ID_ASSIGNMENT");
+            entity.Property(e => e.EndDate)
+                .HasColumnType("date")
+                .HasColumnName("END_DATE");
+            entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
+            entity.Property(e => e.IdVehicle).HasColumnName("ID_VEHICLE");
+            entity.Property(e => e.StartDate)
+                .HasColumnType("date")
+                .HasColumnName("START_DATE");
+
+            entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.Assignments)
+                .HasForeignKey(d => d.IdAssignmentType)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ASSIGNMENT_ASSIGNMENT_TYPE");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Assignments)
+                .HasForeignKey(d => d.IdDriver)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ASSIGNMENT_DRIVER");
+
+            entity.HasOne(d => d.IdMobileNavigation).WithMany(p => p.Assignments)
+                .HasForeignKey(d => d.IdMobile)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ASSIGNMENT_MOBILE");
+
+            entity.HasOne(d => d.IdVehicleNavigation).WithMany(p => p.Assignments)
+                .HasForeignKey(d => d.IdVehicle)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ASSIGNMENT_VEHICLE");
+        });
+
+        modelBuilder.Entity<AssignmentType>(entity =>
+        {
+            entity.HasKey(e => e.IdAssignmentType);
+
+            entity.ToTable("ASSIGNMENT_TYPE");
+
+            entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
+            entity.Property(e => e.Description)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("DESCRIPTION");
+        });
+
+        modelBuilder.Entity<Client>(entity =>
+        {
+            entity.HasKey(e => e.IdClient);
+
+            entity.ToTable("CLIENT");
+
+            entity.Property(e => e.IdClient).HasColumnName("ID_CLIENT");
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.NameObject)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("NAME_OBJECT");
+
+            entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Clients)
+                .HasForeignKey(d => d.IdAccount)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CLIENT_ACCOUNT");
+        });
+
+        modelBuilder.Entity<Coordinator>(entity =>
+        {
+            entity.HasKey(e => e.IdCoordinator);
+
+            entity.ToTable("COORDINATOR");
+
+            entity.Property(e => e.IdCoordinator).HasColumnName("ID_COORDINATOR");
+            entity.Property(e => e.Description)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("DESCRIPTION");
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.Qualification)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("QUALIFICATION");
+
+            entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Coordinators)
+                .HasForeignKey(d => d.IdAccount)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_COORDINATOR_ACCOUNT");
+        });
+
+        modelBuilder.Entity<Driver>(entity =>
+        {
+            entity.HasKey(e => e.IdDriver);
+
+            entity.ToTable("DRIVER");
+
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.IdTachograph).HasColumnName("ID_TACHOGRAPH");
+            entity.Property(e => e.LicenseCategory)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength()
+                .HasColumnName("LICENSE_CATEGORY");
+            entity.Property(e => e.LicenseNumber)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("LICENSE_NUMBER");
+            entity.Property(e => e.PrivateMobile).HasColumnName("PRIVATE_MOBILE");
+
+            entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Drivers)
+                .HasForeignKey(d => d.IdAccount)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DRIVER_ACCOUNT");
+
+            entity.HasOne(d => d.IdTachographNavigation).WithMany(p => p.Drivers)
+                .HasForeignKey(d => d.IdTachograph)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DRIVER_TACHOGRAPH");
+        });
+
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.HasKey(e => e.IdInvoice);
+
+            entity.ToTable("INVOICE");
+
+            entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdObject).HasColumnName("ID_OBJECT");
+            entity.Property(e => e.IdStatus).HasColumnName("ID_STATUS");
+            entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
+            entity.Property(e => e.IssueDate)
+                .HasColumnType("datetime")
+                .HasColumnName("ISSUE_DATE");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdDriver)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_INVOICE_DRIVER1");
+
+            entity.HasOne(d => d.IdObjectNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdObject)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_INVOICE_OBJECT");
+
+            entity.HasOne(d => d.IdStatusNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdStatus)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_INVOICE_INVOICE_STATUS");
+
+            entity.HasOne(d => d.IdWarehouseNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdWarehouse)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_INVOICE_WAREHOUSE");
+        });
+
+        modelBuilder.Entity<InvoiceProduct>(entity =>
+        {
+            entity.HasKey(e => new { e.IdInvoice, e.IdProduct });
+
+            entity.ToTable("INVOICE_PRODUCT");
+
+            entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
+            entity.Property(e => e.IdProduct).HasColumnName("ID_PRODUCT");
+            entity.Property(e => e.OrderQuantity).HasColumnName("ORDER_QUANTITY");
+
+            entity.HasOne(d => d.IdInvoiceNavigation).WithMany(p => p.InvoiceProducts)
+                .HasForeignKey(d => d.IdInvoice)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_INVOICE_PRODUCT_INVOICE");
+
+            entity.HasOne(d => d.IdProductNavigation).WithMany(p => p.InvoiceProducts)
+                .HasForeignKey(d => d.IdProduct)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_INVOICE_PRODUCT_PRODUCT");
+        });
+
+        modelBuilder.Entity<InvoiceStatus>(entity =>
+        {
+            entity.HasKey(e => e.IdStatus);
+
+            entity.ToTable("INVOICE_STATUS");
+
+            entity.Property(e => e.IdStatus).HasColumnName("ID_STATUS");
+            entity.Property(e => e.Description)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("DESCRIPTION");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("NAME");
+        });
+
+        modelBuilder.Entity<Mobile>(entity =>
+        {
+            entity.HasKey(e => e.IdMobile);
+
+            entity.ToTable("MOBILE");
+
+            entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.LkLatitude).HasColumnName("LK_LATITUDE");
+            entity.Property(e => e.LkLongitude).HasColumnName("LK_LONGITUDE");
+            entity.Property(e => e.PhoneNumber).HasColumnName("PHONE_NUMBER");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Mobiles)
+                .HasForeignKey(d => d.IdDriver)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MOBILE_DRIVER");
+        });
+
+        modelBuilder.Entity<Object>(entity =>
+        {
+            entity.HasKey(e => e.IdObject);
+
+            entity.ToTable("OBJECT");
+
+            entity.Property(e => e.IdObject).HasColumnName("ID_OBJECT");
+            entity.Property(e => e.Address)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("ADDRESS");
+            entity.Property(e => e.IdClient).HasColumnName("ID_CLIENT");
+            entity.Property(e => e.Latitude).HasColumnName("LATITUDE");
+            entity.Property(e => e.Longitude).HasColumnName("LONGITUDE");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("NAME");
+            entity.Property(e => e.Qr)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("QR");
+
+            entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.Objects)
+                .HasForeignKey(d => d.IdClient)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OBJECT_CLIENT");
+        });
+
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(e => e.IdProduct);
+
+            entity.ToTable("PRODUCT");
+
+            entity.Property(e => e.IdProduct).HasColumnName("ID_PRODUCT");
+            entity.Property(e => e.Barcode).HasColumnName("BARCODE");
+            entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
+            entity.Property(e => e.NameProduct)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("NAME_PRODUCT");
+            entity.Property(e => e.Price).HasColumnName("PRICE");
+            entity.Property(e => e.Quantity).HasColumnName("QUANTITY");
+
+            entity.HasOne(d => d.IdWarehouseNavigation).WithMany(p => p.Products)
+                .HasForeignKey(d => d.IdWarehouse)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PRODUCT_WAREHOUSE");
+        });
+
+        modelBuilder.Entity<Tachograph>(entity =>
+        {
+            entity.HasKey(e => e.IdTachograph);
+
+            entity.ToTable("TACHOGRAPH");
+
+            entity.Property(e => e.IdTachograph).HasColumnName("ID_TACHOGRAPH");
+            entity.Property(e => e.ExpiryDate)
+                .HasColumnType("date")
+                .HasColumnName("EXPIRY_DATE");
+            entity.Property(e => e.IdWorkingHours).HasColumnName("ID_WORKING_HOURS");
+            entity.Property(e => e.IssueDate)
+                .HasColumnType("date")
+                .HasColumnName("ISSUE_DATE");
+            entity.Property(e => e.Label)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("LABEL");
+
+            entity.HasOne(d => d.IdWorkingHoursNavigation).WithMany(p => p.Tachographs)
+                .HasForeignKey(d => d.IdWorkingHours)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TACHOGRAPH_WORKING_HOURS");
+        });
+
+        modelBuilder.Entity<Vehicle>(entity =>
+        {
+            entity.HasKey(e => e.IdVehicle);
+
+            entity.ToTable("VEHICLE");
+
+            entity.Property(e => e.IdVehicle).HasColumnName("ID_VEHICLE");
+            entity.Property(e => e.Brand)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("BRAND");
+            entity.Property(e => e.Color)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("COLOR");
+            entity.Property(e => e.ExpiryDate)
+                .HasColumnType("date")
+                .HasColumnName("EXPIRY_DATE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IssueDate)
+                .HasColumnType("date")
+                .HasColumnName("ISSUE_DATE");
+            entity.Property(e => e.Model)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("MODEL");
+            entity.Property(e => e.Registration)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("REGISTRATION");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.IdDriver)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VEHICLE_DRIVER");
+        });
+
+        modelBuilder.Entity<Warehouse>(entity =>
+        {
+            entity.HasKey(e => e.IdWarehouse);
+
+            entity.ToTable("WAREHOUSE");
+
+            entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
+            entity.Property(e => e.Address)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("ADDRESS");
+            entity.Property(e => e.Latitude).HasColumnName("LATITUDE");
+            entity.Property(e => e.Longitude).HasColumnName("LONGITUDE");
+            entity.Property(e => e.NameWarehouse)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasColumnName("NAME_WAREHOUSE");
+        });
+
+        modelBuilder.Entity<WorkingHour>(entity =>
+        {
+            entity.HasKey(e => e.IdWorkingHours);
+
+            entity.ToTable("WORKING_HOURS");
+
+            entity.Property(e => e.IdWorkingHours).HasColumnName("ID_WORKING_HOURS");
+            entity.Property(e => e.Duration).HasColumnName("DURATION");
+            entity.Property(e => e.EndTime)
+                .HasColumnType("datetime")
+                .HasColumnName("END_TIME");
+            entity.Property(e => e.StartTime)
+                .HasColumnType("datetime")
+                .HasColumnName("START_TIME");
+        });
+
+        OnModelCreatingPartial(modelBuilder);
+    }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+}
