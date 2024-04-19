@@ -15,6 +15,8 @@ public partial class Account
 
     public string Password { get; set; } = null!;
 
+    public int Type { get; set; }
+
     public virtual ICollection<Client> Clients { get; set; } = new List<Client>();
 
     public virtual ICollection<Coordinator> Coordinators { get; set; } = new List<Coordinator>();
