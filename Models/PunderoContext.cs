@@ -76,6 +76,7 @@ public partial class PunderoContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasColumnName("PASSWORD");
+            entity.Property(e => e.Type).HasColumnName("TYPE");
         });
 
         modelBuilder.Entity<Assignment>(entity =>
@@ -210,18 +211,12 @@ public partial class PunderoContext : DbContext
             entity.ToTable("INVOICE");
 
             entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
-            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
             entity.Property(e => e.IdObject).HasColumnName("ID_OBJECT");
             entity.Property(e => e.IdStatus).HasColumnName("ID_STATUS");
             entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
             entity.Property(e => e.IssueDate)
                 .HasColumnType("datetime")
                 .HasColumnName("ISSUE_DATE");
-
-            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Invoices)
-                .HasForeignKey(d => d.IdDriver)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_INVOICE_DRIVER1");
 
             entity.HasOne(d => d.IdObjectNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdObject)

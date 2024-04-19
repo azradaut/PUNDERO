@@ -23,8 +23,6 @@ public partial class Driver
 
     public virtual Tachograph IdTachographNavigation { get; set; } = null!;
 
-    public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
-
     public virtual ICollection<Mobile> Mobiles { get; set; } = new List<Mobile>();
 
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();

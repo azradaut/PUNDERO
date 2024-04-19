@@ -11,13 +11,9 @@ public partial class Invoice
 
     public int IdObject { get; set; }
 
-    public int IdDriver { get; set; }
-
     public int IdWarehouse { get; set; }
 
     public int IdStatus { get; set; }
-
-    public virtual Driver IdDriverNavigation { get; set; } = null!;
 
     public virtual Object IdObjectNavigation { get; set; } = null!;
 
