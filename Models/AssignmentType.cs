@@ -9,5 +9,7 @@ public partial class AssignmentType
 
     public string Description { get; set; } = null!;
 
-    public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
+    public virtual ICollection<MobileDriver> MobileDrivers { get; set; } = new List<MobileDriver>();
+
+    public virtual ICollection<VehicleDriver> VehicleDrivers { get; set; } = new List<VehicleDriver>();
 }

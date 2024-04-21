@@ -40,7 +40,7 @@ namespace PUNDERO.Controllers
         }
         // POST: api/Accounts
         [HttpPost]
-        public IActionResult PostVehicle([FromBody] Account account)
+        public IActionResult PostAccount([FromBody] Account account)
         {
             if (!ModelState.IsValid)
             {
