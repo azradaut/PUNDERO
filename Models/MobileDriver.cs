@@ -13,9 +13,9 @@ public partial class MobileDriver
 
     public DateTime AssignmentEndDate { get; set; }
 
-    public int IdAssignmentType { get; set; }
+    public int? IdAssignmentType { get; set; }
 
-    public virtual AssignmentType IdAssignmentTypeNavigation { get; set; } = null!;
+    public virtual AssignmentType? IdAssignmentTypeNavigation { get; set; }
 
     public virtual Driver IdDriverNavigation { get; set; } = null!;
 

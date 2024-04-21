@@ -15,9 +15,9 @@ public partial class Product
 
     public int Barcode { get; set; }
 
-    public int IdWarehouse { get; set; }
+    public int? IdWarehouse { get; set; }
 
-    public virtual Warehouse IdWarehouseNavigation { get; set; } = null!;
+    public virtual Warehouse? IdWarehouseNavigation { get; set; }
 
     public virtual ICollection<InvoiceProduct> InvoiceProducts { get; set; } = new List<InvoiceProduct>();
 }

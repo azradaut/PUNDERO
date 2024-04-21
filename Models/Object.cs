@@ -17,9 +17,9 @@ public partial class Object
 
     public string Qr { get; set; } = null!;
 
-    public int IdClient { get; set; }
+    public int? IdClient { get; set; }
 
-    public virtual Client IdClientNavigation { get; set; } = null!;
+    public virtual Client? IdClientNavigation { get; set; }
 
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

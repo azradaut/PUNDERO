@@ -13,9 +13,9 @@ public partial class Tachograph
 
     public DateTime ExpiryDate { get; set; }
 
-    public int IdWorkingHours { get; set; }
+    public int? IdWorkingHours { get; set; }
 
     public virtual ICollection<Driver> Drivers { get; set; } = new List<Driver>();
 
-    public virtual WorkingHour IdWorkingHoursNavigation { get; set; } = null!;
+    public virtual WorkingHour? IdWorkingHoursNavigation { get; set; }
 }
