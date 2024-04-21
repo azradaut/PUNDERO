@@ -109,7 +109,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Clients)
                 .HasForeignKey(d => d.IdAccount)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_CLIENT_ACCOUNT");
         });
 
