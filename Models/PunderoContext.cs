@@ -17,8 +17,6 @@ public partial class PunderoContext : DbContext
 
     public virtual DbSet<Account> Accounts { get; set; }
 
-    public virtual DbSet<Assignment> Assignments { get; set; }
-
     public virtual DbSet<AssignmentType> AssignmentTypes { get; set; }
 
     public virtual DbSet<Client> Clients { get; set; }
@@ -35,6 +33,8 @@ public partial class PunderoContext : DbContext
 
     public virtual DbSet<Mobile> Mobiles { get; set; }
 
+    public virtual DbSet<MobileDriver> MobileDrivers { get; set; }
+
     public virtual DbSet<Object> Objects { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
@@ -42,6 +42,8 @@ public partial class PunderoContext : DbContext
     public virtual DbSet<Tachograph> Tachographs { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
+
+    public virtual DbSet<VehicleDriver> VehicleDrivers { get; set; }
 
     public virtual DbSet<Warehouse> Warehouses { get; set; }
 
@@ -77,45 +79,6 @@ public partial class PunderoContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("PASSWORD");
             entity.Property(e => e.Type).HasColumnName("TYPE");
-        });
-
-        modelBuilder.Entity<Assignment>(entity =>
-        {
-            entity.HasKey(e => e.IdAssignment);
-
-            entity.ToTable("ASSIGNMENT");
-
-            entity.Property(e => e.IdAssignment).HasColumnName("ID_ASSIGNMENT");
-            entity.Property(e => e.EndDate)
-                .HasColumnType("date")
-                .HasColumnName("END_DATE");
-            entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
-            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
-            entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
-            entity.Property(e => e.IdVehicle).HasColumnName("ID_VEHICLE");
-            entity.Property(e => e.StartDate)
-                .HasColumnType("date")
-                .HasColumnName("START_DATE");
-
-            entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.Assignments)
-                .HasForeignKey(d => d.IdAssignmentType)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ASSIGNMENT_ASSIGNMENT_TYPE");
-
-            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Assignments)
-                .HasForeignKey(d => d.IdDriver)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ASSIGNMENT_DRIVER");
-
-            entity.HasOne(d => d.IdMobileNavigation).WithMany(p => p.Assignments)
-                .HasForeignKey(d => d.IdMobile)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ASSIGNMENT_MOBILE");
-
-            entity.HasOne(d => d.IdVehicleNavigation).WithMany(p => p.Assignments)
-                .HasForeignKey(d => d.IdVehicle)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ASSIGNMENT_VEHICLE");
         });
 
         modelBuilder.Entity<AssignmentType>(entity =>
@@ -279,15 +242,41 @@ public partial class PunderoContext : DbContext
             entity.ToTable("MOBILE");
 
             entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
-            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
             entity.Property(e => e.LkLatitude).HasColumnName("LK_LATITUDE");
             entity.Property(e => e.LkLongitude).HasColumnName("LK_LONGITUDE");
             entity.Property(e => e.PhoneNumber).HasColumnName("PHONE_NUMBER");
+        });
 
-            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Mobiles)
+        modelBuilder.Entity<MobileDriver>(entity =>
+        {
+            entity.HasKey(e => new { e.IdMobile, e.IdDriver });
+
+            entity.ToTable("MOBILE_DRIVER");
+
+            entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.AssignmentEndDate)
+                .HasColumnType("date")
+                .HasColumnName("ASSIGNMENT_END_DATE");
+            entity.Property(e => e.AssignmentStartDate)
+                .HasColumnType("date")
+                .HasColumnName("ASSIGNMENT_START_DATE");
+            entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
+
+            entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.MobileDrivers)
+                .HasForeignKey(d => d.IdAssignmentType)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MOBILE_DRIVER_ASSIGNMENT_TYPE");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdDriver)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MOBILE_DRIVER");
+                .HasConstraintName("FK_MOBILE_DRIVER_DRIVER");
+
+            entity.HasOne(d => d.IdMobileNavigation).WithMany(p => p.MobileDrivers)
+                .HasForeignKey(d => d.IdMobile)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MOBILE_DRIVER_MOBILE");
         });
 
         modelBuilder.Entity<Object>(entity =>
@@ -384,7 +373,6 @@ public partial class PunderoContext : DbContext
             entity.Property(e => e.ExpiryDate)
                 .HasColumnType("date")
                 .HasColumnName("EXPIRY_DATE");
-            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
             entity.Property(e => e.IssueDate)
                 .HasColumnType("date")
                 .HasColumnName("ISSUE_DATE");
@@ -396,11 +384,38 @@ public partial class PunderoContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("REGISTRATION");
+        });
 
-            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Vehicles)
+        modelBuilder.Entity<VehicleDriver>(entity =>
+        {
+            entity.HasKey(e => new { e.IdVehicle, e.IdDriver });
+
+            entity.ToTable("VEHICLE_DRIVER");
+
+            entity.Property(e => e.IdVehicle).HasColumnName("ID_VEHICLE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.AssignmentEndDate)
+                .HasColumnType("date")
+                .HasColumnName("ASSIGNMENT_END_DATE");
+            entity.Property(e => e.AssignmentStartDate)
+                .HasColumnType("date")
+                .HasColumnName("ASSIGNMENT_START_DATE");
+            entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
+
+            entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.VehicleDrivers)
+                .HasForeignKey(d => d.IdAssignmentType)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VEHICLE_DRIVER_ASSIGNMENT_TYPE");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.VehicleDrivers)
                 .HasForeignKey(d => d.IdDriver)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_VEHICLE_DRIVER");
+                .HasConstraintName("FK_VEHICLE_DRIVER_DRIVER");
+
+            entity.HasOne(d => d.IdVehicleNavigation).WithMany(p => p.VehicleDrivers)
+                .HasForeignKey(d => d.IdVehicle)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VEHICLE_DRIVER_VEHICLE1");
         });
 
         modelBuilder.Entity<Warehouse>(entity =>

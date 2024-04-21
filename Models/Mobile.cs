@@ -13,9 +13,5 @@ public partial class Mobile
 
     public double LkLatitude { get; set; }
 
-    public int IdDriver { get; set; }
-
-    public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
-
-    public virtual Driver IdDriverNavigation { get; set; } = null!;
+    public virtual ICollection<MobileDriver> MobileDrivers { get; set; } = new List<MobileDriver>();
 }

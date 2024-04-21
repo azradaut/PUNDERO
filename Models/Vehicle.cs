@@ -19,9 +19,5 @@ public partial class Vehicle
 
     public string Color { get; set; } = null!;
 
-    public int IdDriver { get; set; }
-
-    public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
-
-    public virtual Driver IdDriverNavigation { get; set; } = null!;
+    public virtual ICollection<VehicleDriver> VehicleDrivers { get; set; } = new List<VehicleDriver>();
 }

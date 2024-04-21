@@ -17,13 +17,11 @@ public partial class Driver
 
     public int IdAccount { get; set; }
 
-    public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
-
     public virtual Account IdAccountNavigation { get; set; } = null!;
 
     public virtual Tachograph IdTachographNavigation { get; set; } = null!;
 
-    public virtual ICollection<Mobile> Mobiles { get; set; } = new List<Mobile>();
+    public virtual ICollection<MobileDriver> MobileDrivers { get; set; } = new List<MobileDriver>();
 
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+    public virtual ICollection<VehicleDriver> VehicleDrivers { get; set; } = new List<VehicleDriver>();
 }
