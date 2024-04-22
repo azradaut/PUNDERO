@@ -28,9 +28,9 @@ namespace PUNDERO.Controllers
 
         // GET: api/Warehouses/5
         [HttpGet("{id}")]
-        public IActionResult GetWarehouse(int id)
+        public IActionResult GetWarehouseById(int id)
         {
-            var warehouse = _context.Warehouses.FirstOrDefault(w => w.IdWarehouse == id);
+            var warehouse = _context.Warehouses.FirstOrDefault(v => v.IdWarehouse == id);
 
             if (warehouse == null)
             {
@@ -41,7 +41,7 @@ namespace PUNDERO.Controllers
         }
         // GET: api/Warehouses/name
         [HttpGet("{name}")]
-        public IActionResult GetWarehouse(string name)
+        public IActionResult GetWarehouseByName(string name)
         {
             var warehouse = _context.Warehouses.FirstOrDefault(w => w.NameWarehouse == name);
 
@@ -65,12 +65,12 @@ namespace PUNDERO.Controllers
             _context.Warehouses.Add(warehouse);
             _context.SaveChanges();
 
-            return CreatedAtRoute("GetWarehouse", new { id = warehouse.IdWarehouse }, warehouse);
+            return CreatedAtRoute("GetWarehouseById", new { id = warehouse.IdWarehouse }, warehouse);
         }
 
         // PUT: api/Warehouses/5
         [HttpPut("{id}")]
-        public IActionResult PutWarehouse(int id, [FromBody] Warehouse warehouse)
+        public IActionResult PutWarehouseById(int id, [FromBody] Warehouse warehouse)
         {
             if (!ModelState.IsValid)
             {
@@ -90,7 +90,7 @@ namespace PUNDERO.Controllers
 
         // PUT: api/Warehouses/name
         [HttpPut("{name}")]
-        public IActionResult PutWarehouse(string name, [FromBody] Warehouse warehouse)
+        public IActionResult PutWarehouseByName(string name, [FromBody] Warehouse warehouse)
         {
             if (!ModelState.IsValid)
             {
@@ -115,7 +115,7 @@ namespace PUNDERO.Controllers
 
         // DELETE: api/Warehouses/5
         [HttpDelete("{id}")]
-        public IActionResult DeleteWarehouse(int id)
+        public IActionResult DeleteWarehouseById(int id)
         {
             var warehouse = _context.Warehouses.FirstOrDefault(w => w.IdWarehouse == id);
             if (warehouse == null)
@@ -131,7 +131,7 @@ namespace PUNDERO.Controllers
         
         // DELETE: api/Warehouses/name
         [HttpDelete("{name}")]
-        public IActionResult DeleteWarehouse(string name)
+        public IActionResult DeleteWarehouseByName(string name)
         {
             var warehouse = _context.Warehouses.FirstOrDefault(w => w.NameWarehouse == name);
             if (warehouse == null)
