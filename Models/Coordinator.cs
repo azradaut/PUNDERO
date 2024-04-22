@@ -11,7 +11,7 @@ public partial class Coordinator
 
     public string Description { get; set; } = null!;
 
-    public int IdAccount { get; set; }
+    public int? IdAccount { get; set; }
 
-    public virtual Account IdAccountNavigation { get; set; } = null!;
+    public virtual Account? IdAccountNavigation { get; set; }
 }

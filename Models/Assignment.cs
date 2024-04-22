@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+//MISLIM DA OVO TREBA IZBRISATI JER VIŠE NEMAMO OVU TABELU?????
 namespace PUNDERO.Models;
 
 public partial class Assignment

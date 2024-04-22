@@ -131,7 +131,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Coordinators)
                 .HasForeignKey(d => d.IdAccount)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_COORDINATOR_ACCOUNT");
         });
 
@@ -157,12 +156,10 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Drivers)
                 .HasForeignKey(d => d.IdAccount)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DRIVER_ACCOUNT");
 
             entity.HasOne(d => d.IdTachographNavigation).WithMany(p => p.Drivers)
                 .HasForeignKey(d => d.IdTachograph)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DRIVER_TACHOGRAPH");
         });
 
@@ -182,17 +179,14 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdObjectNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdObject)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_INVOICE_OBJECT");
 
             entity.HasOne(d => d.IdStatusNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdStatus)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_INVOICE_INVOICE_STATUS");
 
             entity.HasOne(d => d.IdWarehouseNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdWarehouse)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_INVOICE_WAREHOUSE");
         });
 
@@ -264,7 +258,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdAssignmentType)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MOBILE_DRIVER_ASSIGNMENT_TYPE");
 
             entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.MobileDrivers)
@@ -303,7 +296,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.Objects)
                 .HasForeignKey(d => d.IdClient)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OBJECT_CLIENT");
         });
 
@@ -325,7 +317,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdWarehouseNavigation).WithMany(p => p.Products)
                 .HasForeignKey(d => d.IdWarehouse)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PRODUCT_WAREHOUSE");
         });
 
@@ -350,7 +341,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdWorkingHoursNavigation).WithMany(p => p.Tachographs)
                 .HasForeignKey(d => d.IdWorkingHours)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TACHOGRAPH_WORKING_HOURS");
         });
 
@@ -403,7 +393,6 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.VehicleDrivers)
                 .HasForeignKey(d => d.IdAssignmentType)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_VEHICLE_DRIVER_ASSIGNMENT_TYPE");
 
             entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.VehicleDrivers)

@@ -13,13 +13,13 @@ public partial class Driver
 
     public string LicenseCategory { get; set; } = null!;
 
-    public int IdTachograph { get; set; }
+    public int? IdTachograph { get; set; }
 
-    public int IdAccount { get; set; }
+    public int? IdAccount { get; set; }
 
-    public virtual Account IdAccountNavigation { get; set; } = null!;
+    public virtual Account? IdAccountNavigation { get; set; }
 
-    public virtual Tachograph IdTachographNavigation { get; set; } = null!;
+    public virtual Tachograph? IdTachographNavigation { get; set; }
 
     public virtual ICollection<MobileDriver> MobileDrivers { get; set; } = new List<MobileDriver>();
 
