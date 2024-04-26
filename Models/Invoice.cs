@@ -9,15 +9,15 @@ public partial class Invoice
 
     public DateTime IssueDate { get; set; }
 
-    public int? IdObject { get; set; }
+    public int? IdStore { get; set; }
 
     public int? IdWarehouse { get; set; }
 
     public int? IdStatus { get; set; }
 
-    public virtual Object? IdObjectNavigation { get; set; }
-
     public virtual InvoiceStatus? IdStatusNavigation { get; set; }
+
+    public virtual Store? IdStoreNavigation { get; set; }
 
     public virtual Warehouse? IdWarehouseNavigation { get; set; }
 

@@ -35,9 +35,9 @@ public partial class PunderoContext : DbContext
 
     public virtual DbSet<MobileDriver> MobileDrivers { get; set; }
 
-    public virtual DbSet<Object> Objects { get; set; }
-
     public virtual DbSet<Product> Products { get; set; }
+
+    public virtual DbSet<Store> Stores { get; set; }
 
     public virtual DbSet<Tachograph> Tachographs { get; set; }
 
@@ -51,7 +51,7 @@ public partial class PunderoContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-JOEL5NL\\SQLEXPRESS;Database=PUNDERO;Trusted_Connection=True;TrustServerCertificate=True;");
+        => optionsBuilder.UseSqlServer("Server= DESKTOP-4GSMGOA\\SQLEXPRESS;Database=PUNDERO;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -102,10 +102,10 @@ public partial class PunderoContext : DbContext
 
             entity.Property(e => e.IdClient).HasColumnName("ID_CLIENT");
             entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
-            entity.Property(e => e.NameObject)
+            entity.Property(e => e.NameStore)
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasColumnName("NAME_OBJECT");
+                .HasColumnName("NAME_STORE");
 
             entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Clients)
                 .HasForeignKey(d => d.IdAccount)
@@ -170,20 +170,20 @@ public partial class PunderoContext : DbContext
             entity.ToTable("INVOICE");
 
             entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
-            entity.Property(e => e.IdObject).HasColumnName("ID_OBJECT");
             entity.Property(e => e.IdStatus).HasColumnName("ID_STATUS");
+            entity.Property(e => e.IdStore).HasColumnName("ID_STORE");
             entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
             entity.Property(e => e.IssueDate)
                 .HasColumnType("datetime")
                 .HasColumnName("ISSUE_DATE");
 
-            entity.HasOne(d => d.IdObjectNavigation).WithMany(p => p.Invoices)
-                .HasForeignKey(d => d.IdObject)
-                .HasConstraintName("FK_INVOICE_OBJECT");
-
             entity.HasOne(d => d.IdStatusNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdStatus)
                 .HasConstraintName("FK_INVOICE_INVOICE_STATUS");
+
+            entity.HasOne(d => d.IdStoreNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdStore)
+                .HasConstraintName("FK_INVOICE_OBJECT");
 
             entity.HasOne(d => d.IdWarehouseNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdWarehouse)
@@ -192,22 +192,21 @@ public partial class PunderoContext : DbContext
 
         modelBuilder.Entity<InvoiceProduct>(entity =>
         {
-            entity.HasKey(e => new { e.IdInvoice, e.IdProduct });
+            entity.HasKey(e => e.IdInvoiceProduct);
 
             entity.ToTable("INVOICE_PRODUCT");
 
+            entity.Property(e => e.IdInvoiceProduct).HasColumnName("ID_INVOICE_PRODUCT");
             entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
             entity.Property(e => e.IdProduct).HasColumnName("ID_PRODUCT");
             entity.Property(e => e.OrderQuantity).HasColumnName("ORDER_QUANTITY");
 
             entity.HasOne(d => d.IdInvoiceNavigation).WithMany(p => p.InvoiceProducts)
                 .HasForeignKey(d => d.IdInvoice)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_INVOICE_PRODUCT_INVOICE");
 
             entity.HasOne(d => d.IdProductNavigation).WithMany(p => p.InvoiceProducts)
                 .HasForeignKey(d => d.IdProduct)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_INVOICE_PRODUCT_PRODUCT");
         });
 
@@ -242,12 +241,11 @@ public partial class PunderoContext : DbContext
 
         modelBuilder.Entity<MobileDriver>(entity =>
         {
-            entity.HasKey(e => new { e.IdMobile, e.IdDriver });
+            entity.HasKey(e => e.IdMobileDriver);
 
             entity.ToTable("MOBILE_DRIVER");
 
-            entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
-            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdMobileDriver).HasColumnName("ID_MOBILE_DRIVER");
             entity.Property(e => e.AssignmentEndDate)
                 .HasColumnType("date")
                 .HasColumnName("ASSIGNMENT_END_DATE");
@@ -255,6 +253,8 @@ public partial class PunderoContext : DbContext
                 .HasColumnType("date")
                 .HasColumnName("ASSIGNMENT_START_DATE");
             entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
 
             entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdAssignmentType)
@@ -262,41 +262,11 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdDriver)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MOBILE_DRIVER_DRIVER");
 
             entity.HasOne(d => d.IdMobileNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdMobile)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MOBILE_DRIVER_MOBILE");
-        });
-
-        modelBuilder.Entity<Object>(entity =>
-        {
-            entity.HasKey(e => e.IdObject);
-
-            entity.ToTable("OBJECT");
-
-            entity.Property(e => e.IdObject).HasColumnName("ID_OBJECT");
-            entity.Property(e => e.Address)
-                .HasMaxLength(100)
-                .IsUnicode(false)
-                .HasColumnName("ADDRESS");
-            entity.Property(e => e.IdClient).HasColumnName("ID_CLIENT");
-            entity.Property(e => e.Latitude).HasColumnName("LATITUDE");
-            entity.Property(e => e.Longitude).HasColumnName("LONGITUDE");
-            entity.Property(e => e.Name)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("NAME");
-            entity.Property(e => e.Qr)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("QR");
-
-            entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.Objects)
-                .HasForeignKey(d => d.IdClient)
-                .HasConstraintName("FK_OBJECT_CLIENT");
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -318,6 +288,34 @@ public partial class PunderoContext : DbContext
             entity.HasOne(d => d.IdWarehouseNavigation).WithMany(p => p.Products)
                 .HasForeignKey(d => d.IdWarehouse)
                 .HasConstraintName("FK_PRODUCT_WAREHOUSE");
+        });
+
+        modelBuilder.Entity<Store>(entity =>
+        {
+            entity.HasKey(e => e.IdStore).HasName("PK_OBJECT");
+
+            entity.ToTable("STORE");
+
+            entity.Property(e => e.IdStore).HasColumnName("ID_STORE");
+            entity.Property(e => e.Address)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("ADDRESS");
+            entity.Property(e => e.IdClient).HasColumnName("ID_CLIENT");
+            entity.Property(e => e.Latitude).HasColumnName("LATITUDE");
+            entity.Property(e => e.Longitude).HasColumnName("LONGITUDE");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("NAME");
+            entity.Property(e => e.Qr)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("QR");
+
+            entity.HasOne(d => d.IdClientNavigation).WithMany(p => p.Stores)
+                .HasForeignKey(d => d.IdClient)
+                .HasConstraintName("FK_OBJECT_CLIENT");
         });
 
         modelBuilder.Entity<Tachograph>(entity =>
@@ -377,12 +375,11 @@ public partial class PunderoContext : DbContext
 
         modelBuilder.Entity<VehicleDriver>(entity =>
         {
-            entity.HasKey(e => new { e.IdVehicle, e.IdDriver });
+            entity.HasKey(e => e.IdVehicleDriver).HasName("PK_VEHICLE_DRIVER_1");
 
             entity.ToTable("VEHICLE_DRIVER");
 
-            entity.Property(e => e.IdVehicle).HasColumnName("ID_VEHICLE");
-            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdVehicleDriver).HasColumnName("ID_VEHICLE_DRIVER");
             entity.Property(e => e.AssignmentEndDate)
                 .HasColumnType("date")
                 .HasColumnName("ASSIGNMENT_END_DATE");
@@ -390,6 +387,8 @@ public partial class PunderoContext : DbContext
                 .HasColumnType("date")
                 .HasColumnName("ASSIGNMENT_START_DATE");
             entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
+            entity.Property(e => e.IdVehicle).HasColumnName("ID_VEHICLE");
 
             entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.VehicleDrivers)
                 .HasForeignKey(d => d.IdAssignmentType)
@@ -397,12 +396,10 @@ public partial class PunderoContext : DbContext
 
             entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.VehicleDrivers)
                 .HasForeignKey(d => d.IdDriver)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_VEHICLE_DRIVER_DRIVER");
 
             entity.HasOne(d => d.IdVehicleNavigation).WithMany(p => p.VehicleDrivers)
                 .HasForeignKey(d => d.IdVehicle)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_VEHICLE_DRIVER_VEHICLE1");
         });
 

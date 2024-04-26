@@ -7,11 +7,11 @@ public partial class Client
 {
     public int IdClient { get; set; }
 
-    public string NameObject { get; set; } = null!;
+    public string NameStore { get; set; } = null!;
 
     public int? IdAccount { get; set; }
 
     public virtual Account? IdAccountNavigation { get; set; }
 
-    public virtual ICollection<Object> Objects { get; set; } = new List<Object>();
+    public virtual ICollection<Store> Stores { get; set; } = new List<Store>();
 }
