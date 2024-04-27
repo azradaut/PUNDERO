@@ -17,6 +17,8 @@ public partial class Account
 
     public int Type { get; set; }
 
+    public virtual ICollection<AuthenticationToken> AuthenticationTokens { get; set; } = new List<AuthenticationToken>();
+
     public virtual ICollection<Client> Clients { get; set; } = new List<Client>();
 
     public virtual ICollection<Coordinator> Coordinators { get; set; } = new List<Coordinator>();
