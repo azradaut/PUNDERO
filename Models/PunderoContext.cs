@@ -19,6 +19,8 @@ public partial class PunderoContext : DbContext
 
     public virtual DbSet<AssignmentType> AssignmentTypes { get; set; }
 
+    public virtual DbSet<AuthenticationToken> AuthenticationTokens { get; set; }
+
     public virtual DbSet<Client> Clients { get; set; }
 
     public virtual DbSet<Coordinator> Coordinators { get; set; }
@@ -51,7 +53,7 @@ public partial class PunderoContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server= DESKTOP-4GSMGOA\\SQLEXPRESS;Database=PUNDERO;Trusted_Connection=True;TrustServerCertificate=True;");
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-JOEL5NL\\SQLEXPRESS;Database=PUNDERO;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -92,6 +94,30 @@ public partial class PunderoContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("DESCRIPTION");
+        });
+
+        modelBuilder.Entity<AuthenticationToken>(entity =>
+        {
+            entity.HasKey(e => e.IdAuthentication);
+
+            entity.ToTable("AUTHENTICATION_TOKEN");
+
+            entity.Property(e => e.IdAuthentication).HasColumnName("ID_AUTHENTICATION");
+            entity.Property(e => e.Email)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("EMAIL");
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.SignDate)
+                .HasColumnType("date")
+                .HasColumnName("SIGN_DATE");
+            entity.Property(e => e.TokenValue)
+                .HasMaxLength(50)
+                .HasColumnName("TOKEN_VALUE");
+
+            entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.AuthenticationTokens)
+                .HasForeignKey(d => d.IdAccount)
+                .HasConstraintName("FK_AUTHENTICATION_TOKEN_ACCOUNT");
         });
 
         modelBuilder.Entity<Client>(entity =>

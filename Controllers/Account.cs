@@ -4,32 +4,38 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using PUNDERO.Helper;
 
 namespace PUNDERO.Controllers
 {
-  
-    [Route("api/[controller]")]
+
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private readonly PunderoContext _context;
+        PunderoContext db = new PunderoContext();
+        private readonly MyAuthService _authService;
 
-        public AccountController(PunderoContext context)
+
+        public AccountController(MyAuthService authService)
         {
-            _context = context;
+            _authService = authService;
         }
+
         // GET: api/Accounts
         [HttpGet]
         public IActionResult GetAccounts()
         {
-            var accounts = _context.Accounts.ToList();
+            if (_authService.UserType != 1 && _authService.UserType != 2 && _authService.UserType != 3)
+                throw new UnauthorizedAccessException();
+            var accounts = db.Accounts.ToList();
             return Ok(accounts);
         }
         // GET: api/Accounts/email
         [HttpGet("{email}")]
         public IActionResult GetAccountByEmail(string email)
         {
-            var account = _context.Accounts.FirstOrDefault(v => v.Email == email);
+            var account = db.Accounts.FirstOrDefault(v => v.Email == email);
 
             if (account == null)
             {
@@ -47,8 +53,8 @@ namespace PUNDERO.Controllers
                 return BadRequest(ModelState);
             }
 
-            _context.Accounts.Add(account);
-            _context.SaveChanges();
+            db.Accounts.Add(account);
+            db.SaveChanges();
 
             return CreatedAtRoute("GetAccountsByEmail", new { email = account.Email }, account);
         }
@@ -66,8 +72,8 @@ namespace PUNDERO.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(account).State = EntityState.Modified;
-            _context.SaveChanges();
+            db.Entry(account).State = EntityState.Modified;
+            db.SaveChanges();
 
             return NoContent();
         }
@@ -75,14 +81,14 @@ namespace PUNDERO.Controllers
         [HttpDelete("{id}")]
         public IActionResult DeleteAccount(int id)
         {
-            var account = _context.Accounts.FirstOrDefault(wh => wh.IdAccount == id);
+            var account = db.Accounts.FirstOrDefault(wh => wh.IdAccount == id);
             if (account == null)
             {
                 return NotFound();
             }
 
-            _context.Accounts.Remove(account);
-            _context.SaveChanges();
+            db.Accounts.Remove(account);
+            db.SaveChanges();
 
             return Ok(account);
         }
