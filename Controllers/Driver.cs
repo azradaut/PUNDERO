@@ -39,7 +39,7 @@ namespace PUNDERO.Controllers
             return Ok(driver);
         }
 
-        // GET: api/Driver/1
+        // GET: api/Driver/IdDriver
         [HttpGet("{id}")]
         public IActionResult GetDriver(int id)
         {

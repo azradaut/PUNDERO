@@ -103,10 +103,6 @@ public partial class PunderoContext : DbContext
             entity.ToTable("AUTHENTICATION_TOKEN");
 
             entity.Property(e => e.IdAuthentication).HasColumnName("ID_AUTHENTICATION");
-            entity.Property(e => e.Email)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("EMAIL");
             entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
             entity.Property(e => e.SignDate)
                 .HasColumnType("date")
