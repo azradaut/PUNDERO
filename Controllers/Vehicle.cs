@@ -76,7 +76,7 @@ namespace PUNDERO.Controllers
          }
 
         // DELETE: api/Vehicles/id
-        [HttpDelete("{id}")]
+        [HttpDelete("DeleteVehicle/{id}")]
         public IActionResult DeleteVehicle(int id)
         {
             var vehicle = _context.Vehicles.FirstOrDefault(v => v.IdVehicle == id);
