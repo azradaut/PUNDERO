@@ -57,15 +57,15 @@ namespace PUNDERO.Controllers
         }
 
         // PUT: api/Product/my-product-name
-        [HttpPut("{name}")]
-        public IActionResult PutProduct(string name, [FromBody] Product product)
+        [HttpPut("{id}")]
+        public IActionResult PutProduct(int id, [FromBody] Product product)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            if (name != product.NameProduct)
+            if (id != product.IdProduct)
             {
                 return BadRequest();
             }
@@ -76,11 +76,11 @@ namespace PUNDERO.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Product/my-product-name
-        [HttpDelete("{name}")]
-        public IActionResult DeleteProduct(string name)
+        // DELETE: api/Products/id
+        [HttpDelete("{id}")]
+        public IActionResult DeleteProduct(int id)
         {
-            var product = _context.Products.FirstOrDefault(p => p.NameProduct == name);
+            var product = _context.Products.FirstOrDefault(p => p.IdProduct == id);
             if (product == null)
             {
                 return NotFound();
