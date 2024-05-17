@@ -39,7 +39,7 @@ namespace PUNDERO.Controllers
 
             return Ok(vehicle);
         }
-       
+
         // POST: api/Vehicles
         [HttpPost]
         public IActionResult PostVehicle([FromBody] Vehicle vehicle)
@@ -57,29 +57,29 @@ namespace PUNDERO.Controllers
 
         // PUT: api/Vehicles/id
         [HttpPut("{id}")]
-         public IActionResult PutVehicle(int id, [FromBody] Vehicle vehicle)
-         {
-             if (!ModelState.IsValid)
-             {
-                 return BadRequest(ModelState);
-             }
+        public IActionResult PutVehicle(int id, [FromBody] Vehicle vehicle)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-             if (id != vehicle.IdVehicle)
-             {
-                 return BadRequest();
-             }
+            if (id != vehicle.IdVehicle)
+            {
+                return BadRequest();
+            }
 
-             _context.Entry(vehicle).State = EntityState.Modified;
-             _context.SaveChanges();
+            _context.Entry(vehicle).State = EntityState.Modified;
+            _context.SaveChanges();
 
-             return NoContent();
-         }
+            return NoContent();
+        }
 
         // DELETE: api/Vehicles/id
-        [HttpDelete("{id}")]
+        [HttpDelete("DeleteVehicle/{id}")]
         public IActionResult DeleteVehicle(int id)
         {
-            var vehicle = _context.Vehicles.FirstOrDefault(v => v.IdVehicle == id);
+            var vehicle = _context.Vehicles.FirstOrDefault(i => i.IdVehicle == id);
             if (vehicle == null)
             {
                 return NotFound();
