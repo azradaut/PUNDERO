@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using System.Threading.Tasks;
 
 namespace PUNDERO.Controllers
 {
@@ -40,7 +41,6 @@ namespace PUNDERO.Controllers
             return Ok(product);
         }
 
-
         // POST: api/Product
         [HttpPost]
         public IActionResult PostProduct([FromBody] Product product)
@@ -74,6 +74,48 @@ namespace PUNDERO.Controllers
             _context.SaveChanges();
 
             return NoContent();
+        }
+
+        [HttpPost("")]
+        public async Task<IActionResult> CheckAvailability([FromBody] List<ProductRequest> productRequests)
+        {
+            var availabilityDetails = new List<ProductAvailabilityResponse>();
+
+            foreach (var productRequest in productRequests)
+            {
+                var product = await _context.Products.SingleOrDefaultAsync(p => p.IdProduct == productRequest.ProductId);
+                if (product == null)
+                {
+                    return BadRequest($"Product with ID {productRequest.ProductId} not found.");
+                }
+
+                availabilityDetails.Add(new ProductAvailabilityResponse
+                {
+                    IdProduct = product.IdProduct,
+                    NameProduct = product.NameProduct,
+                    OrderQuantity = productRequest.Quantity,
+                    AvailableQuantity = product.Quantity,
+                    Barcode = product.Barcode
+                });
+            }
+
+            bool allAvailable = availabilityDetails.All(p => p.AvailableQuantity >= p.OrderQuantity);
+
+            return Ok(new
+            {
+                AllAvailable = allAvailable,
+                Products = availabilityDetails
+            });
+        }
+
+
+        public class ProductAvailabilityResponse
+        {
+            public int IdProduct { get; set; }
+            public string NameProduct { get; set; }
+            public int OrderQuantity { get; set; }
+            public int AvailableQuantity { get; set; }
+            public int Barcode { get; set; }
         }
 
         // DELETE: api/Products/id

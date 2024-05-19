@@ -37,6 +37,8 @@ public partial class PunderoContext : DbContext
 
     public virtual DbSet<MobileDriver> MobileDrivers { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Store> Stores { get; set; }
@@ -298,6 +300,30 @@ public partial class PunderoContext : DbContext
             entity.HasOne(d => d.IdMobileNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdMobile)
                 .HasConstraintName("FK_MOBILE_DRIVER_MOBILE");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.IdNotification).HasName("PK__NOTIFICA__B78BF54650FDF929");
+
+            entity.ToTable("NOTIFICATION");
+
+            entity.Property(e => e.IdNotification).HasColumnName("ID_NOTIFICATION");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("CREATED_At");
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.Message)
+                .HasMaxLength(255)
+                .HasColumnName("MESSAGE");
+            entity.Property(e => e.Seen)
+                .HasDefaultValueSql("((0))")
+                .HasColumnName("SEEN");
+
+            entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.IdAccount)
+                .HasConstraintName("FK__NOTIFICAT__ID_AC__0B5CAFEA");
         });
 
         modelBuilder.Entity<Product>(entity =>

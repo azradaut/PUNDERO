@@ -52,6 +52,21 @@ namespace PUNDERO.Controllers
 
             return Ok(driver);
         }
+
+        [HttpGet]
+        public IActionResult GetDriversWithName()
+        {
+            var drivers = _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .Select(d => new
+                {
+                    d.IdDriver,
+                    FirstName = d.IdAccountNavigation.FirstName,
+                    LastName = d.IdAccountNavigation.LastName
+                })
+                .ToList();
+            return Ok(drivers);
+        }
         // POST: api/Driver
         [HttpPost]
         public IActionResult PostDriver([FromBody] Driver driver)

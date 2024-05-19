@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Helper;
 using PUNDERO.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,8 +10,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.WriteIndented = true;
     });
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -24,15 +25,17 @@ builder.Services.AddDbContext<PunderoContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-// Configure CORS policy
+// CORS configuration
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(builder =>
-    {
-        builder.WithOrigins("http://localhost:3000") // Add other origins if necessary
-               .AllowAnyHeader()
-               .AllowAnyMethod();
-    });
+    options.AddDefaultPolicy(
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:8515", "http://localhost:3000", "http://127.0.0.1:5500")
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
+        });
 });
 
 var app = builder.Build();
@@ -46,7 +49,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Apply CORS policy before any other middleware
+// Apply CORS policy
 app.UseCors();
 
 app.UseHttpsRedirection();
