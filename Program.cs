@@ -5,7 +5,12 @@ using PUNDERO.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -41,7 +46,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Apply CORS policy
+// Apply CORS policy before any other middleware
 app.UseCors();
 
 app.UseHttpsRedirection();

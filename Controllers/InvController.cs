@@ -25,7 +25,7 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
                 .Include(i => i.IdStatusNavigation)
-                .Include(i => i.IdDriverNavigation) // Ensure this is the correct navigation property
+                .Include(i => i.IdDriverNavigation) // Correct the navigation property here
                 .Include(i => i.InvoiceProducts)
                     .ThenInclude(ip => ip.IdProductNavigation)
                 .ToListAsync();
@@ -40,7 +40,7 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
                 .Include(i => i.IdStatusNavigation)
-                .Include(i => i.IdDriverNavigation) // Ensure this is the correct navigation property
+                .Include(i => i.IdDriverNavigation) // Correct the navigation property here
                 .Include(i => i.InvoiceProducts)
                     .ThenInclude(ip => ip.IdProductNavigation)
                 .SingleOrDefaultAsync(i => i.IdInvoice == id);

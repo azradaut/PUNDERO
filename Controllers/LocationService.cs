@@ -19,12 +19,12 @@ namespace PUNDERO.Controllers
             _context = context;
             _authService = authService;
         }
+
         public class UpdateLocationDto
         {
             public double Longitude { get; set; }
             public double Latitude { get; set; }
         }
-
 
         [HttpPut("update")]
         public async Task<IActionResult> UpdateLocation([FromBody] UpdateLocationDto updateLocationDto)
@@ -68,6 +68,28 @@ namespace PUNDERO.Controllers
             await _context.SaveChangesAsync();
 
             return Ok("Location updated successfully.");
+        }
+
+        // Get all locations
+        [HttpGet("getall")]
+        public async Task<IActionResult> GetAllLocations()
+        {
+            var locations = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .Include(d => d.MobileDrivers)
+                .ThenInclude(md => md.IdMobileNavigation)
+                .Select(d => new
+                {
+                    DriverId = d.IdDriver,
+                    FirstName = d.IdAccountNavigation.FirstName,
+                    LastName = d.IdAccountNavigation.LastName,
+                    MobilePhoneNumber = d.MobileDrivers.Select(md => md.IdMobileNavigation.PhoneNumber).FirstOrDefault(),
+                    LkLongitude = d.MobileDrivers.Select(md => md.IdMobileNavigation.LkLongitude).FirstOrDefault(),
+                    LkLatitude = d.MobileDrivers.Select(md => md.IdMobileNavigation.LkLatitude).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Ok(locations);
         }
     }
 }
