@@ -25,7 +25,7 @@ namespace PUNDERO.Controllers
         [HttpGet("{IdAccount}")]
         public IActionResult GetClientByIdAccount(int IdAccount)
         {
-            var client = _context.Clients.FirstOrDefault(v => v.IdAccount == IdAccount );
+            var client = _context.Clients.FirstOrDefault(v => v.IdAccount == IdAccount);
 
             if (client == null)
             {

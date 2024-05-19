@@ -196,12 +196,17 @@ public partial class PunderoContext : DbContext
             entity.ToTable("INVOICE");
 
             entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
             entity.Property(e => e.IdStatus).HasColumnName("ID_STATUS");
             entity.Property(e => e.IdStore).HasColumnName("ID_STORE");
             entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
             entity.Property(e => e.IssueDate)
                 .HasColumnType("datetime")
                 .HasColumnName("ISSUE_DATE");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdDriver)
+                .HasConstraintName("FK_INVOICE_DRIVER");
 
             entity.HasOne(d => d.IdStatusNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdStatus)

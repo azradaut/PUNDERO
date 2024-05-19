@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using PUNDERO.Models;
 
 namespace PUNDERO.Controllers
@@ -39,7 +40,6 @@ namespace PUNDERO.Controllers
 
             return Ok(invoice);
         }
-
         // POST: api/Invoice
         [HttpPost]
         public IActionResult PostInvoice([FromBody] Invoice invoice)
