@@ -19,11 +19,12 @@ builder.Services.AddDbContext<PunderoContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+// Configure CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins("https://localhost:44306", "https://localhost:3000", "http://127.0.0.1:5500")
+        builder.WithOrigins("http://localhost:3000") // Add other origins if necessary
                .AllowAnyHeader()
                .AllowAnyMethod();
     });
@@ -40,12 +41,14 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Apply CORS policy
 app.UseCors();
+
+app.UseHttpsRedirection();
+
 app.UseRouting();
-app.UseCors(builder =>
-{
-    builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-});
+
+app.UseAuthorization();
 
 app.MapControllers();
 
