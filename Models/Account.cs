@@ -24,4 +24,6 @@ public partial class Account
     public virtual ICollection<Coordinator> Coordinators { get; set; } = new List<Coordinator>();
 
     public virtual ICollection<Driver> Drivers { get; set; } = new List<Driver>();
+
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

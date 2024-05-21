@@ -49,4 +49,62 @@ public class AuthController : ControllerBase
         public string Password { get; set; }
     }
 
+
+    //Login mobile
+    [HttpPost("mobile/login")]
+    
+    public MyAuthInfoMobile Proces([FromBody] AuthLoginRequest request)
+    {
+        var logiraniKorisnik = _applicationDbContext.Accounts
+            .FirstOrDefault(k => k.Email == request.Email && k.Password == request.Password);
+
+        if (logiraniKorisnik == null)
+        {
+            return null;
+        }
+
+        string randomString = TokenGenerator.Generate(10);
+
+        var noviToken = new AuthenticationToken()
+        {
+            TokenValue = randomString,
+            IdAccountNavigation = logiraniKorisnik,
+            SignDate = DateTime.Now,
+        };
+
+        _applicationDbContext.Add(noviToken);
+        _applicationDbContext.SaveChanges();
+
+        int? driverId = _applicationDbContext.Drivers
+            .Where(d => d.IdAccount == logiraniKorisnik.IdAccount)
+            .Select(d => (int?)d.IdDriver)
+            .FirstOrDefault();
+
+        return new MyAuthInfoMobile(noviToken, driverId);
+    }
+
+    public class AuthLoginRequestMobile
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+}
+
+public class MyAuthInfoMobile
+{
+    public MyAuthInfoMobile(AuthenticationToken? autentifikacijaToken, int? driverId)
+    {
+        this.IdAccount = autentifikacijaToken?.IdAccountNavigation?.IdAccount;
+        this.Email = autentifikacijaToken?.IdAccountNavigation?.Email;
+        this.Type = autentifikacijaToken?.IdAccountNavigation?.Type;
+        this.TokenValue = autentifikacijaToken?.TokenValue;
+        this.DriverId = driverId;
+    }
+
+    public int? IdAccount { get; set; }
+    public string? Email { get; set; }
+    public int? Type { get; set; }
+    public string? TokenValue { get; set; }
+    public int? DriverId { get; set; }
+    public bool isLogiran => IdAccount != null;
 }
