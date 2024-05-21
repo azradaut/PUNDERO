@@ -17,6 +17,16 @@ namespace PUNDERO.Controllers
         {
             _context = context;
         }
+        public class InvoiceDto
+        {
+            public int IdInvoice { get; set; }
+            public int? IdDriver { get; set; }
+            public int? IdStatus { get; set; }
+            public string StoreName { get; set; }
+            public string WarehouseName { get; set; }
+            public DateTime IssueDate { get; set; }
+        }
+
 
         // GET: api/Invoice
         [HttpGet]
@@ -89,6 +99,49 @@ namespace PUNDERO.Controllers
             _context.SaveChanges();
 
             return Ok(invoice);
+        }
+        [HttpGet("{driverId}")]
+        
+        public IActionResult GetApprovedInvoicesForDriver(int driverId)
+        {
+            var invoices = _context.Invoices
+                .Include(i => i.IdStatusNavigation)
+                .Include(i => i.IdStoreNavigation)
+                .Include(i => i.IdWarehouseNavigation)
+                .Where(i => i.IdDriver == driverId && (i.IdStatus == 2 | i.IdStatus == 3)) // Only approved invoices
+                .Select(i => new InvoiceDto
+                {
+                    IdInvoice = i.IdInvoice,
+                    IdDriver = i.IdDriver,
+                    IdStatus = i.IdStatus,
+                    StoreName = i.IdStoreNavigation.Name,
+                    WarehouseName = i.IdWarehouseNavigation.NameWarehouse,
+                    IssueDate = i.IssueDate
+                })
+                .ToList();
+
+            if (!invoices.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(invoices);
+        }
+
+        [HttpPut("{id}/status")]
+        public IActionResult UpdateInvoiceStatus(int id, [FromBody] int statusId)
+        {
+            var invoice = _context.Invoices.FirstOrDefault(i => i.IdInvoice == id);
+            if (invoice == null)
+            {
+                return NotFound();
+            }
+
+            invoice.IdStatus = statusId;
+            _context.Entry(invoice).State = EntityState.Modified;
+            _context.SaveChanges();
+
+            return NoContent();
         }
     }
 }

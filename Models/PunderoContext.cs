@@ -37,6 +37,8 @@ public partial class PunderoContext : DbContext
 
     public virtual DbSet<MobileDriver> MobileDrivers { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<Store> Stores { get; set; }
@@ -103,6 +105,10 @@ public partial class PunderoContext : DbContext
             entity.ToTable("AUTHENTICATION_TOKEN");
 
             entity.Property(e => e.IdAuthentication).HasColumnName("ID_AUTHENTICATION");
+            entity.Property(e => e.Email)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("EMAIL");
             entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
             entity.Property(e => e.SignDate)
                 .HasColumnType("date")
@@ -192,12 +198,17 @@ public partial class PunderoContext : DbContext
             entity.ToTable("INVOICE");
 
             entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
+            entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
             entity.Property(e => e.IdStatus).HasColumnName("ID_STATUS");
             entity.Property(e => e.IdStore).HasColumnName("ID_STORE");
             entity.Property(e => e.IdWarehouse).HasColumnName("ID_WAREHOUSE");
             entity.Property(e => e.IssueDate)
                 .HasColumnType("datetime")
                 .HasColumnName("ISSUE_DATE");
+
+            entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.IdDriver)
+                .HasConstraintName("FK_INVOICE_DRIVER");
 
             entity.HasOne(d => d.IdStatusNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdStatus)
@@ -289,6 +300,30 @@ public partial class PunderoContext : DbContext
             entity.HasOne(d => d.IdMobileNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdMobile)
                 .HasConstraintName("FK_MOBILE_DRIVER_MOBILE");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.IdNotification).HasName("PK__NOTIFICA__B78BF54650FDF929");
+
+            entity.ToTable("NOTIFICATION");
+
+            entity.Property(e => e.IdNotification).HasColumnName("ID_NOTIFICATION");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("CREATED_At");
+            entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.Message)
+                .HasMaxLength(255)
+                .HasColumnName("MESSAGE");
+            entity.Property(e => e.Seen)
+                .HasDefaultValueSql("((0))")
+                .HasColumnName("SEEN");
+
+            entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.IdAccount)
+                .HasConstraintName("FK__NOTIFICAT__ID_AC__0B5CAFEA");
         });
 
         modelBuilder.Entity<Product>(entity =>
