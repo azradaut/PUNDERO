@@ -9,7 +9,6 @@ namespace PUNDERO.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly PunderoContext _applicationDbContext = new PunderoContext();
-
     [HttpPost("login")]
     public MyAuthInfo Obradi([FromBody] AuthLoginRequest request)
     {
@@ -53,7 +52,7 @@ public class AuthController : ControllerBase
     //Login mobile
     [HttpPost("mobile/login")]
     
-    public MyAuthInfoMobile Proces([FromBody] AuthLoginRequest request)
+    public MyAuthInfoMobile Process([FromBody] AuthLoginRequest request)
     {
         var logiraniKorisnik = _applicationDbContext.Accounts
             .FirstOrDefault(k => k.Email == request.Email && k.Password == request.Password);
