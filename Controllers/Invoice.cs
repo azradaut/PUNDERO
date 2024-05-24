@@ -36,7 +36,7 @@ namespace PUNDERO.Controllers
             return Ok(invoices);
         }
 
-        // GET: api/Invoice/1
+        // GET: api/Invoice/
         [HttpGet("{id}")]
         public IActionResult GetInvoice(int id)
         {
@@ -108,7 +108,33 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdStatusNavigation)
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
-                .Where(i => i.IdDriver == driverId && (i.IdStatus == 2 | i.IdStatus == 3)) // Only approved invoices
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 2) // Only approved invoices
+                .Select(i => new InvoiceDto
+                {
+                    IdInvoice = i.IdInvoice,
+                    IdDriver = i.IdDriver,
+                    IdStatus = i.IdStatus,
+                    StoreName = i.IdStoreNavigation.Name,
+                    WarehouseName = i.IdWarehouseNavigation.NameWarehouse,
+                    IssueDate = i.IssueDate
+                })
+                .ToList();
+
+            if (!invoices.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(invoices);
+        }
+        [HttpGet("{driverId}")]
+        public IActionResult GetInTransitInvoicesForDriver(int driverId)
+        {
+            var invoices = _context.Invoices
+                .Include(i => i.IdStatusNavigation)
+                .Include(i => i.IdStoreNavigation)
+                .Include(i => i.IdWarehouseNavigation)
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 3) // Only In Transit invoices
                 .Select(i => new InvoiceDto
                 {
                     IdInvoice = i.IdInvoice,
