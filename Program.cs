@@ -11,7 +11,11 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
         options.JsonSerializerOptions.WriteIndented = true;
+
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -51,6 +55,9 @@ if (app.Environment.IsDevelopment())
 
 // Apply CORS policy
 app.UseCors();
+
+// Ensure static files are served from the wwwroot directory
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 
