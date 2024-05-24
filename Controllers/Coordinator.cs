@@ -1,11 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PUNDERO.Controllers
 {
@@ -14,46 +11,110 @@ namespace PUNDERO.Controllers
     public class CoordinatorController : ControllerBase
     {
         private readonly PunderoContext _context;
-        private readonly ILogger<CoordinatorController> _logger;
 
-        public CoordinatorController(PunderoContext context, ILogger<CoordinatorController> logger)
+        public CoordinatorController(PunderoContext context)
         {
             _context = context;
-            _logger = logger;
         }
 
-        // Other methods...
-
-        // DELETE: api/Coordinator/DeleteCoordinator/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCoordinator(int id)
+        // GET: api/Coordinator/GetCoordinators
+        [HttpGet]
+        public IActionResult GetCoordinators()
         {
-            var coordinator = await _context.Coordinators
+            var coordinators = _context.Coordinators
                 .Include(c => c.IdAccountNavigation)
-                .FirstOrDefaultAsync(c => c.IdCoordinator == id);
+                .Select(c => new
+                {
+                    c.IdCoordinator,
+                    FirstName = c.IdAccountNavigation.FirstName,
+                    LastName = c.IdAccountNavigation.LastName,
+                    Email = c.IdAccountNavigation.Email,
+                    Type = "Coordinator",
+                    c.Qualification,
+                    c.Description,
+                    c.IdAccountNavigation.Image
+                })
+                .ToList();
+
+            return Ok(coordinators);
+        }
+
+        // GET: api/Coordinator/IdAccount
+        [HttpGet("{IdAccount}")]
+        public IActionResult GetCoordinatorByIdAccount(int IdAccount)
+        {
+            var coordinator = _context.Coordinators
+                .Include(c => c.IdAccountNavigation)
+                .Where(c => c.IdAccount == IdAccount)
+                .Select(c => new
+                {
+                    c.IdCoordinator,
+                    FirstName = c.IdAccountNavigation.FirstName,
+                    LastName = c.IdAccountNavigation.LastName,
+                    Email = c.IdAccountNavigation.Email,
+                    Type = "Coordinator",
+                    c.Qualification,
+                    c.Description,
+                    c.IdAccountNavigation.Image
+                })
+                .FirstOrDefault();
 
             if (coordinator == null)
             {
                 return NotFound();
             }
 
-            try
+            return Ok(coordinator);
+        }
+
+        // POST: api/Coordinator/AddCoordinator
+        [HttpPost]
+        public async Task<IActionResult> AddCoordinator([FromBody] CoordinatorViewModel model)
+        {
+            if (!ModelState.IsValid)
             {
-                var account = coordinator.IdAccountNavigation;
-
-                _context.Coordinators.Remove(coordinator);
-                _context.Accounts.Remove(account);
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Coordinator deleted successfully." });
+                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => e.ErrorMessage)).ToList();
+                foreach (var error in errors)
+                {
+                    Console.WriteLine(error);
+                }
+                return BadRequest(ModelState);
             }
-            catch (Exception ex)
+
+            var account = new Account
             {
-                Console.WriteLine("Error deleting coordinator: " + ex.Message);
-                Console.WriteLine(ex.StackTrace);
-                return StatusCode(500, "Internal server error");
-            }
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                Password = model.Password,
+                Type = 1, // Coordinator type
+                Image = model.Image // Store base64 string directly
+            };
+
+            _context.Accounts.Add(account);
+            await _context.SaveChangesAsync();
+
+            var coordinator = new Coordinator
+            {
+                Qualification = model.Qualification,
+                Description = model.Description,
+                IdAccount = account.IdAccount
+            };
+
+            _context.Coordinators.Add(coordinator);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                coordinator.IdCoordinator,
+                account.FirstName,
+                account.LastName,
+                account.Email,
+                account.Type,
+                coordinator.Qualification,
+                coordinator.Description,
+                account.Image
+            });
         }
     }
 }
