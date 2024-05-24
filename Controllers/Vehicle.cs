@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using System.Linq;
 
 namespace PUNDERO.Controllers
 {
@@ -22,7 +20,34 @@ namespace PUNDERO.Controllers
         [HttpGet]
         public IActionResult GetVehicles()
         {
-            var vehicles = _context.Vehicles.ToList();
+            var vehicles = _context.Vehicles
+                .Include(v => v.VehicleDrivers)
+                    .ThenInclude(vd => vd.IdDriverNavigation)
+                        .ThenInclude(d => d.IdAccountNavigation)
+                .Include(v => v.VehicleDrivers)
+                    .ThenInclude(vd => vd.IdAssignmentTypeNavigation)
+                .Select(v => new
+                {
+                    v.IdVehicle,
+                    v.Registration,
+                    v.IssueDate,
+                    v.ExpiryDate,
+                    v.Brand,
+                    v.Model,
+                    v.Color,
+                    AssignedDriver = v.VehicleDrivers.Select(vd => new
+                    {
+                        IdDriver = vd.IdDriver ?? 0,
+                        DriverName = vd.IdDriverNavigation != null
+                            ? vd.IdDriverNavigation.IdAccountNavigation.FirstName + " " + vd.IdDriverNavigation.IdAccountNavigation.LastName
+                            : "Unassigned"
+                    }).FirstOrDefault() ?? new { IdDriver = 0, DriverName = "Unassigned" },
+                    AssignmentType = v.VehicleDrivers.Select(vd => vd.IdAssignmentTypeNavigation != null
+                        ? vd.IdAssignmentTypeNavigation.Description
+                        : "Unassigned").FirstOrDefault() ?? "Unassigned"
+                })
+                .ToList();
+
             return Ok(vehicles);
         }
 
@@ -30,7 +55,34 @@ namespace PUNDERO.Controllers
         [HttpGet("{registration}")]
         public IActionResult GetVehicleByRegistration(string registration)
         {
-            var vehicle = _context.Vehicles.FirstOrDefault(v => v.Registration == registration);
+            var vehicle = _context.Vehicles
+                .Include(v => v.VehicleDrivers)
+                    .ThenInclude(vd => vd.IdDriverNavigation)
+                        .ThenInclude(d => d.IdAccountNavigation)
+                .Include(v => v.VehicleDrivers)
+                    .ThenInclude(vd => vd.IdAssignmentTypeNavigation)
+                .Where(v => v.Registration == registration)
+                .Select(v => new
+                {
+                    v.IdVehicle,
+                    v.Registration,
+                    v.IssueDate,
+                    v.ExpiryDate,
+                    v.Brand,
+                    v.Model,
+                    v.Color,
+                    AssignedDriver = v.VehicleDrivers.Select(vd => new
+                    {
+                        IdDriver = vd.IdDriver ?? 0,
+                        DriverName = vd.IdDriverNavigation != null
+                            ? vd.IdDriverNavigation.IdAccountNavigation.FirstName + " " + vd.IdDriverNavigation.IdAccountNavigation.LastName
+                            : "Unassigned"
+                    }).FirstOrDefault() ?? new { IdDriver = 0, DriverName = "Unassigned" },
+                    AssignmentType = v.VehicleDrivers.Select(vd => vd.IdAssignmentTypeNavigation != null
+                        ? vd.IdAssignmentTypeNavigation.Description
+                        : "Unassigned").FirstOrDefault() ?? "Unassigned"
+                })
+                .FirstOrDefault();
 
             if (vehicle == null)
             {
@@ -39,6 +91,7 @@ namespace PUNDERO.Controllers
 
             return Ok(vehicle);
         }
+
 
         // POST: api/Vehicles
         [HttpPost]
@@ -52,7 +105,7 @@ namespace PUNDERO.Controllers
             _context.Vehicles.Add(vehicle);
             _context.SaveChanges();
 
-            return CreatedAtRoute("GetVehicleByRegistration", new { registration = vehicle.Registration }, vehicle);
+            return CreatedAtAction("GetVehicleByRegistration", new { registration = vehicle.Registration }, vehicle);
         }
 
         // PUT: api/Vehicles/id
@@ -74,6 +127,8 @@ namespace PUNDERO.Controllers
 
             return NoContent();
         }
+
+
 
         // DELETE: api/Vehicles/id
         [HttpDelete("DeleteVehicle/{id}")]
