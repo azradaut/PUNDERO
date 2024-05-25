@@ -25,7 +25,10 @@ namespace PUNDERO.Controllers
             public string StoreName { get; set; }
             public string WarehouseName { get; set; }
             public DateTime IssueDate { get; set; }
+            public double StoreLatitude { get; set; }
+            public double StoreLongitude { get; set; }
         }
+
 
 
         // GET: api/Invoice
@@ -108,7 +111,7 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdStatusNavigation)
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
-                .Where(i => i.IdDriver == driverId && i.IdStatus == 2) // Only approved invoices
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 2) // Samo approved invoices
                 .Select(i => new InvoiceDto
                 {
                     IdInvoice = i.IdInvoice,
@@ -142,7 +145,9 @@ namespace PUNDERO.Controllers
                     IdStatus = i.IdStatus,
                     StoreName = i.IdStoreNavigation.Name,
                     WarehouseName = i.IdWarehouseNavigation.NameWarehouse,
-                    IssueDate = i.IssueDate
+                    IssueDate = i.IssueDate,
+                    StoreLatitude = i.IdStoreNavigation.Latitude,
+                    StoreLongitude = i.IdStoreNavigation.Longitude
                 })
                 .ToList();
 
