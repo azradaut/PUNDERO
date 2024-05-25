@@ -25,7 +25,10 @@ namespace PUNDERO.Controllers
             public string StoreName { get; set; }
             public string WarehouseName { get; set; }
             public DateTime IssueDate { get; set; }
+            public double StoreLatitude { get; set; }
+            public double StoreLongitude { get; set; }
         }
+
 
 
         // GET: api/Invoice
@@ -142,7 +145,9 @@ namespace PUNDERO.Controllers
                     IdStatus = i.IdStatus,
                     StoreName = i.IdStoreNavigation.Name,
                     WarehouseName = i.IdWarehouseNavigation.NameWarehouse,
-                    IssueDate = i.IssueDate
+                    IssueDate = i.IssueDate,
+                    StoreLatitude = i.IdStoreNavigation.Latitude,
+                    StoreLongitude = i.IdStoreNavigation.Longitude
                 })
                 .ToList();
 

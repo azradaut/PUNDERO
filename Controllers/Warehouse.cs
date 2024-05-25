@@ -144,5 +144,33 @@ namespace PUNDERO.Controllers
 
             return Ok(warehouse);
         }
+
+        [HttpGet]
+        public ActionResult<WarehouseDto> GetWarehouseLocation()
+        {
+            var warehouse = _context.Warehouses.FirstOrDefault();
+            if (warehouse == null)
+            {
+                return NotFound();
+            }
+
+            var warehouseDto = new WarehouseDto
+            {
+                
+                Latitude = warehouse.Latitude,
+                Longitude = warehouse.Longitude,
+                Address = warehouse.Address
+            };
+
+            return Ok(warehouseDto);
+        }
+    }
+
+    public class WarehouseDto
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public string Address { get; set; }
     }
 }
+
