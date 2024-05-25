@@ -45,7 +45,7 @@ namespace PUNDERO.Controllers
             return CreatedAtAction(nameof(GetNotifications), new { accountId = notification.IdAccount }, notification);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id}/markAsSeen")]
         public async Task<IActionResult> MarkAsSeen(int id)
         {
             var notification = await _context.Notifications.FindAsync(id);
