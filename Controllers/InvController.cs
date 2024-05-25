@@ -4,7 +4,7 @@ using PUNDERO.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging; // Add this line for logging
+using Microsoft.Extensions.Logging;
 
 namespace PUNDERO.Controllers
 {
@@ -13,12 +13,12 @@ namespace PUNDERO.Controllers
     public class InvController : ControllerBase
     {
         private readonly PunderoContext _context;
-        private readonly ILogger<InvController> _logger; // Add this line for logging
+        private readonly ILogger<InvController> _logger;
 
-        public InvController(PunderoContext context, ILogger<InvController> logger) // Add logger to the constructor
+        public InvController(PunderoContext context, ILogger<InvController> logger)
         {
             _context = context;
-            _logger = logger; // Initialize logger
+            _logger = logger;
         }
 
         private async Task CreateNotification(int accountId, string message)
@@ -49,6 +49,7 @@ namespace PUNDERO.Controllers
 
             return Ok(invoices);
         }
+
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingInvoices()
         {
@@ -64,7 +65,6 @@ namespace PUNDERO.Controllers
 
             return Ok(pendingInvoices);
         }
-
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetInvoice(int id)
@@ -89,10 +89,10 @@ namespace PUNDERO.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateInvoice(CreateInvoiceRequest request)
         {
-            var store = await _context.Stores.SingleOrDefaultAsync(s => s.IdClient == request.ClientId);
+            var store = await _context.Stores.SingleOrDefaultAsync(s => s.IdClient == request.ClientId && s.Name == request.StoreName);
             if (store == null)
             {
-                return BadRequest("Invalid client ID.");
+                return BadRequest("Invalid client ID or store name.");
             }
 
             // Validate product IDs
@@ -175,7 +175,6 @@ namespace PUNDERO.Controllers
             return NoContent();
         }
 
-        // New endpoint to approve an invoice
         [HttpPut("{id}/approve")]
         public async Task<IActionResult> ApproveInvoice(int id)
         {
@@ -188,30 +187,21 @@ namespace PUNDERO.Controllers
 
                 if (invoice == null)
                 {
-                    Console.WriteLine("Invoice not found");
                     return NotFound();
                 }
 
-                // Log current invoice status before change
-                Console.WriteLine($"Current invoice status: {invoice.IdStatus}");
-
                 invoice.IdStatus = 2; // Approved status ID
-
-                // Log updated invoice status after change
-                Console.WriteLine($"Updated invoice status: {invoice.IdStatus}");
 
                 foreach (var invoiceProduct in invoice.InvoiceProducts)
                 {
                     var product = await _context.Products.FindAsync(invoiceProduct.IdProduct);
                     if (product == null)
                     {
-                        Console.WriteLine($"Product with ID {invoiceProduct.IdProduct} not found");
                         return BadRequest($"Product with ID {invoiceProduct.IdProduct} not found.");
                     }
 
                     if (product.Quantity < invoiceProduct.OrderQuantity)
                     {
-                        Console.WriteLine($"Insufficient quantity for product {product.NameProduct}. Requested: {invoiceProduct.OrderQuantity}, Available: {product.Quantity}");
                         return BadRequest($"Insufficient quantity for product {product.NameProduct}. Requested: {invoiceProduct.OrderQuantity}, Available: {product.Quantity}");
                     }
 
@@ -219,10 +209,6 @@ namespace PUNDERO.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-
-                // Verify status after saving changes
-                var updatedInvoice = await _context.Invoices.FindAsync(id);
-                Console.WriteLine($"Invoice status after save: {updatedInvoice.IdStatus}");
 
                 var client = await _context.Clients
                     .Include(c => c.IdAccountNavigation)
@@ -236,16 +222,10 @@ namespace PUNDERO.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception details
-                Console.WriteLine($"Error approving invoice: {ex.Message}");
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
                 return StatusCode(500, "Internal server error. Please try again later.");
             }
         }
 
-
-
-        // New endpoint to reject an invoice
         [HttpPut("{id}/reject")]
         public async Task<IActionResult> RejectInvoice(int id)
         {
@@ -273,6 +253,7 @@ namespace PUNDERO.Controllers
     public class CreateInvoiceRequest
     {
         public int ClientId { get; set; }
+        public string StoreName { get; set; }
         public ProductRequest[] Products { get; set; }
     }
 

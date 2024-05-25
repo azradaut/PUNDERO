@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Helper;
 using PUNDERO.Models;
+using System.Threading.Tasks;
 
 namespace PUNDERO.Controllers
 {
@@ -17,11 +17,11 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var account = await _context.Accounts.SingleOrDefaultAsync(a => a.Email == request.Email && a.Password == request.Password);
+            var account = await _context.Accounts
+                .SingleOrDefaultAsync(a => a.Email == request.Email && a.Password == request.Password);
 
             if (account == null)
             {
@@ -40,9 +40,29 @@ namespace PUNDERO.Controllers
             _context.AuthenticationTokens.Add(authToken);
             await _context.SaveChangesAsync();
 
-            return Ok(new { Token = token, Type = account.Type });
-        }
+            var storeName = string.Empty;
 
+            if (account.Type == 3)
+            {
+                var client = await _context.Clients
+                    .Include(c => c.Stores)
+                    .SingleOrDefaultAsync(c => c.IdAccount == account.IdAccount);
+
+                if (client != null && client.Stores.Any())
+                {
+                    storeName = client.Stores.First().Name;
+                }
+            }
+
+            return Ok(new
+            {
+                Token = token,
+                Type = account.Type,
+                FirstName = account.FirstName,
+                LastName = account.LastName,
+                StoreName = storeName
+            });
+        }
     }
 
     public class LoginRequest
