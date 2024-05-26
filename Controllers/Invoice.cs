@@ -111,7 +111,7 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdStatusNavigation)
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
-                .Where(i => i.IdDriver == driverId && i.IdStatus == 2) // Samo approved invoices
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 2) // Only approved invoices
                 .Select(i => new InvoiceDto
                 {
                     IdInvoice = i.IdInvoice,
