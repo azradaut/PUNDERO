@@ -130,6 +130,33 @@ namespace PUNDERO.Controllers
 
             return Ok(invoices);
         }
+
+
+        public IActionResult GetDeliveredInvoicesForClient(int driverId)
+        {
+            var invoices = _context.Invoices
+                .Include(i => i.IdStatusNavigation)
+                .Include(i => i.IdStoreNavigation)
+                .Include(i => i.IdWarehouseNavigation)
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 4) // Only deliovered invoices
+                .Select(i => new InvoiceDto
+                {
+                    IdInvoice = i.IdInvoice,
+                    IdDriver = i.IdDriver,
+                    IdStatus = i.IdStatus,
+                    StoreName = i.IdStoreNavigation.Name,
+                    WarehouseName = i.IdWarehouseNavigation.NameWarehouse,
+                    IssueDate = i.IssueDate
+                })
+                .ToList();
+
+            if (!invoices.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(invoices);
+        }
         [HttpGet("{driverId}")]
         public IActionResult GetInTransitInvoicesForDriver(int driverId)
         {
