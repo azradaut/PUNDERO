@@ -26,8 +26,10 @@ namespace PUNDERO.Controllers
         [HttpGet]
         public IActionResult GetAccounts()
         {
-            if (_authService.UserType != 1 && _authService.UserType != 2 && _authService.UserType != 3)
-                throw new UnauthorizedAccessException();
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
             var accounts = db.Accounts.ToList();
             return Ok(accounts);
         }
@@ -93,5 +95,5 @@ namespace PUNDERO.Controllers
             return Ok(account);
         }
 
-    } 
+    }
 }
