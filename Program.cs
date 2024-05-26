@@ -1,21 +1,29 @@
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Helper;
 using PUNDERO.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.WriteIndented = true;
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddHttpContextAccessor(); //dodatnog zbog autorizacije
-builder.Services.AddTransient<MyAuthService>(); //dodatnog zbog autorizacije
-builder.Services.AddSwaggerGen(x => x.OperationFilter<AuthorizationSwagger>());//dodatno zbog autorizacije
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<MyAuthService>();
+builder.Services.AddSwaggerGen(x => x.OperationFilter<AuthorizationSwagger>());
+builder.Services.AddTransient<TokenGenerator>();
 
-// Register PunderoContext with dependency injection (replace with your actual connection string name)
 builder.Services.AddDbContext<PunderoContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
@@ -27,15 +35,15 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(
         builder =>
         {
-            builder.WithOrigins("https://localhost:44306/", "https://localhost:3000/", "http://127.0.0.1:5500/")
-            .AllowAnyHeader().
-            AllowAnyMethod();
+            builder.WithOrigins("http://localhost:8515", "http://localhost:3000", "http://127.0.0.1:5500")
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
         });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -45,19 +53,17 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-//app.UseHttpsRedirection();
+// Apply CORS policy
+app.UseCors();
 
-// app.UseAuthorization(); ISKLJUCENO DA RADI BEZ HTTPS
+// Ensure static files are served from the wwwroot directory
+app.UseStaticFiles();
 
-// Add CORS middleware after UseAuthorization
-app.UseCors("AllowReact");
+app.UseHttpsRedirection();
+
 app.UseRouting();
-app.UseCors("SiteCorsPolicy");
 
-app.UseCors(builder =>
-{
-    builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-});
+app.UseAuthorization();
 
 app.MapControllers();
 

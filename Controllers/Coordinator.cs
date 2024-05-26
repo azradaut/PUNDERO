@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PUNDERO.Controllers
 {
@@ -18,30 +17,47 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-        // GET: api/Coordinator
+        // GET: api/Coordinator/GetCoordinators
         [HttpGet]
         public IActionResult GetCoordinators()
         {
-            var coordinators = _context.Coordinators.OrderByDescending(c => c.IdCoordinator)
-                                                  .Select(c => new // Create an anonymous object to exclude IdAccountNavigation
-                                                  {
-                                                      IdCoordinator = c.IdCoordinator,
-                                                      Qualification = c.Qualification,
-                                                      Description = c.Description,
-                                                      IdAccount = c.IdAccount
-                                                  })
-                                                  .ToList();
+            var coordinators = _context.Coordinators
+                .Include(c => c.IdAccountNavigation)
+                .Select(c => new
+                {
+                    c.IdCoordinator,
+                    FirstName = c.IdAccountNavigation.FirstName,
+                    LastName = c.IdAccountNavigation.LastName,
+                    Email = c.IdAccountNavigation.Email,
+                    Type = "Coordinator",
+                    c.Qualification,
+                    c.Description,
+                    c.IdAccountNavigation.Image
+                })
+                .ToList();
+
             return Ok(coordinators);
         }
-
-
-    
 
         // GET: api/Coordinator/IdAccount
         [HttpGet("{IdAccount}")]
         public IActionResult GetCoordinatorByIdAccount(int IdAccount)
         {
-            var coordinator = _context.Coordinators.FirstOrDefault(v => v.IdAccount == IdAccount);
+            var coordinator = _context.Coordinators
+                .Include(c => c.IdAccountNavigation)
+                .Where(c => c.IdAccount == IdAccount)
+                .Select(c => new
+                {
+                    c.IdCoordinator,
+                    FirstName = c.IdAccountNavigation.FirstName,
+                    LastName = c.IdAccountNavigation.LastName,
+                    Email = c.IdAccountNavigation.Email,
+                    Type = "Coordinator",
+                    c.Qualification,
+                    c.Description,
+                    c.IdAccountNavigation.Image
+                })
+                .FirstOrDefault();
 
             if (coordinator == null)
             {
@@ -50,55 +66,55 @@ namespace PUNDERO.Controllers
 
             return Ok(coordinator);
         }
-        // POST: api/Coordinator
+
+        // POST: api/Coordinator/AddCoordinator
         [HttpPost]
-        public IActionResult PostCoordinator([FromBody] Coordinator coordinator)
+        public async Task<IActionResult> AddCoordinator([FromBody] CoordinatorViewModel model)
         {
             if (!ModelState.IsValid)
             {
+                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => e.ErrorMessage)).ToList();
+                foreach (var error in errors)
+                {
+                    Console.WriteLine(error);
+                }
                 return BadRequest(ModelState);
             }
+
+            var account = new Account
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                Password = model.Password,
+                Type = 1, // Coordinator type
+                Image = model.Image // Store base64 string directly
+            };
+
+            _context.Accounts.Add(account);
+            await _context.SaveChangesAsync();
+
+            var coordinator = new Coordinator
+            {
+                Qualification = model.Qualification,
+                Description = model.Description,
+                IdAccount = account.IdAccount
+            };
 
             _context.Coordinators.Add(coordinator);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            return CreatedAtRoute("GetCoordinator", new { id = coordinator.IdCoordinator }, coordinator);
-        }
-
-        // PUT: api/Coordinator/1
-        [HttpPut("{id}")]
-        public IActionResult PutCoordinator(int id, [FromBody] Coordinator coordinator)
-        {
-            if (!ModelState.IsValid)
+            return Ok(new
             {
-                return BadRequest(ModelState);
-            }
-
-            if (id != coordinator.IdCoordinator)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(coordinator).State = EntityState.Modified;
-            _context.SaveChanges();
-
-            return NoContent();
-        }
-
-        // DELETE: api/Coordinator/1
-        [HttpDelete("{id}")]
-        public IActionResult DeleteCoordinator(int id)
-        {
-            var coordinator = _context.Coordinators.FirstOrDefault(c => c.IdCoordinator == id);
-            if (coordinator == null)
-            {
-                return NotFound();
-            }
-
-            _context.Coordinators.Remove(coordinator);
-            _context.SaveChanges();
-
-            return Ok(coordinator);
+                coordinator.IdCoordinator,
+                account.FirstName,
+                account.LastName,
+                account.Email,
+                account.Type,
+                coordinator.Qualification,
+                coordinator.Description,
+                account.Image
+            });
         }
     }
 }

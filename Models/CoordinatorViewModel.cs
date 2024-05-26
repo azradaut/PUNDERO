@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace PUNDERO.Models
 {
-    public partial class Account
+    public class CoordinatorViewModel
     {
-        public int IdAccount { get; set; }
-
         [Required(ErrorMessage = "First Name is required")]
         [StringLength(50, ErrorMessage = "First Name cannot be longer than 50 characters")]
         public string FirstName { get; set; } = null!;
@@ -27,20 +23,14 @@ namespace PUNDERO.Models
         [StringLength(20, ErrorMessage = "Password cannot be longer than 20 characters")]
         public string Password { get; set; } = null!;
 
-        [Range(0, int.MaxValue, ErrorMessage = "Invalid Type value")]
-        public int Type { get; set; }
+        [Required(ErrorMessage = "Qualification is required")]
+        [StringLength(50, ErrorMessage = "Qualification cannot be longer than 50 characters")]
+        public string Qualification { get; set; } = null!;
 
-        [StringLength(255, ErrorMessage = "Image path cannot be longer than 255 characters")]
-        public string? Image { get; set; }
+        [Required(ErrorMessage = "Description is required")]
+        [StringLength(255, ErrorMessage = "Description cannot be longer than 255 characters")]
+        public string Description { get; set; } = null!;
 
-        public virtual ICollection<AuthenticationToken> AuthenticationTokens { get; set; } = new List<AuthenticationToken>();
-
-        public virtual ICollection<Client> Clients { get; set; } = new List<Client>();
-
-        public virtual ICollection<Coordinator> Coordinators { get; set; } = new List<Coordinator>();
-
-        public virtual ICollection<Driver> Drivers { get; set; } = new List<Driver>();
-
-        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public string? Image { get; set; } // Base64-encoded image string
     }
 }

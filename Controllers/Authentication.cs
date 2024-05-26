@@ -1,109 +1,68 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PUNDERO.Helper;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using PUNDERO.Models;
+using System.Linq;
 
-
-namespace PUNDERO.Controllers;
-
-[Route("auth")]
-public class AuthController : ControllerBase
+namespace PUNDERO.Controllers
 {
-    private readonly PunderoContext _applicationDbContext = new PunderoContext();
-    [HttpPost("login")]
-    public MyAuthInfo Obradi([FromBody] AuthLoginRequest request)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        //1- provjera logina
-        var logiraniKorisnik = _applicationDbContext.Accounts
-            .FirstOrDefault(k =>
-                k.Email == request.Email && k.Password == request.Password);
+        private readonly PunderoContext _context;
+        private readonly IConfiguration _configuration;
 
-        if (logiraniKorisnik == null)
+        public AuthController(PunderoContext context, IConfiguration configuration)
         {
-            //pogresan username i password
-            return new MyAuthInfo(null);
+            _context = context;
+            _configuration = configuration;
         }
 
-        //2- generisati random string
-        string randomString = TokenGenerator.Generate(10);
-
-        //3- dodati novi zapis u tabelu AutentifikacijaToken za logiraniKorisnikId i randomString
-        var noviToken = new AuthenticationToken()
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] LoginModel login)
         {
-            TokenValue = randomString,
-            IdAccountNavigation = logiraniKorisnik,
-            SignDate = DateTime.Now,
-        };
+            var user = _context.Accounts.SingleOrDefault(u => u.Email == login.Email && u.Password == login.Password);
 
-        _applicationDbContext.Add(noviToken);
-        _applicationDbContext.SaveChanges();
+            if (user == null)
+            {
+                return Unauthorized("Invalid credentials");
+            }
 
+            var role = GetRoleFromType(user.Type);
 
-        //4- vratiti token string
-        return new MyAuthInfo(noviToken);
-    }
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Name, user.IdAccount.ToString()),
+                    new Claim(ClaimTypes.Role, role)
+                }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
 
-    public class AuthLoginRequest
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-    }
-
-
-    //Login mobile
-    [HttpPost("mobile/login")]
-    
-    public MyAuthInfoMobile Process([FromBody] AuthLoginRequest request)
-    {
-        var logiraniKorisnik = _applicationDbContext.Accounts
-            .FirstOrDefault(k => k.Email == request.Email && k.Password == request.Password);
-
-        if (logiraniKorisnik == null)
-        {
-            return null;
+            return Ok(new LoginResponseModel
+            {
+                Token = tokenString,
+                Role = role
+            });
         }
 
-        string randomString = TokenGenerator.Generate(10);
-
-        var noviToken = new AuthenticationToken()
+        private string GetRoleFromType(int type)
         {
-            TokenValue = randomString,
-            IdAccountNavigation = logiraniKorisnik,
-            SignDate = DateTime.Now,
-        };
-
-        _applicationDbContext.Add(noviToken);
-        _applicationDbContext.SaveChanges();
-
-        int? driverId = _applicationDbContext.Drivers
-            .Where(d => d.IdAccount == logiraniKorisnik.IdAccount)
-            .Select(d => (int?)d.IdDriver)
-            .FirstOrDefault();
-
-        return new MyAuthInfoMobile(noviToken, driverId);
+            return type switch
+            {
+                1 => "Coordinator",
+                3 => "Client",
+                _ => "Unknown"
+            };
+        }
     }
-
-    public class AuthLoginRequestMobile
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-    }
-}
-
-public class MyAuthInfoMobile
-{
-    public MyAuthInfoMobile(AuthenticationToken? autentifikacijaToken, int? driverId)
-    {
-        this.IdAccount = autentifikacijaToken?.IdAccountNavigation?.IdAccount;
-        this.Email = autentifikacijaToken?.IdAccountNavigation?.Email;
-        this.Type = autentifikacijaToken?.IdAccountNavigation?.Type;
-        this.TokenValue = autentifikacijaToken?.TokenValue;
-        this.DriverId = driverId;
-    }
-
-    public int? IdAccount { get; set; }
-    public string? Email { get; set; }
-    public int? Type { get; set; }
-    public string? TokenValue { get; set; }
-    public int? DriverId { get; set; }
-    public bool isLogiran => IdAccount != null;
 }
