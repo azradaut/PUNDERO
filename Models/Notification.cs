@@ -15,5 +15,9 @@ public partial class Notification
 
     public DateTime? CreatedAt { get; set; }
 
+    public int? IdInvoice { get; set; }
+
     public virtual Account? IdAccountNavigation { get; set; }
+
+    public virtual Invoice? IdInvoiceNavigation { get; set; }
 }

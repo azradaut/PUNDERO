@@ -55,7 +55,7 @@ namespace PUNDERO.Controllers
                     Type = "Coordinator",
                     c.Qualification,
                     c.Description,
-                    c.IdAccountNavigation.Image
+                    //c.IdAccountNavigation.Image
                 })
                 .FirstOrDefault();
 
