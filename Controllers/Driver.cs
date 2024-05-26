@@ -45,6 +45,24 @@ namespace PUNDERO.Controllers
             return Ok(drivers);
         }
 
+
+
+        [HttpGet("GetDriversWithName")]
+        public async Task<IActionResult> GetDriversWithName()
+        {
+            var drivers = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .Select(d => new {
+                    d.IdDriver,
+                    d.IdAccountNavigation.FirstName,
+                    d.IdAccountNavigation.LastName
+                })
+                .ToListAsync();
+            return Ok(drivers);
+        }
+
+
+
         // POST: api/Driver/AddDriver
         [HttpPost]
         public async Task<IActionResult> AddDriver([FromBody] DriverViewModel model)

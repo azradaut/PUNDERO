@@ -264,6 +264,52 @@ namespace PUNDERO.Controllers
 
             return NoContent();
         }
+
+        [HttpPut("{id}/complete")]
+        public async Task<IActionResult> CompleteInvoice(int id)
+        {
+            var invoice = await _context.Invoices.FindAsync(id);
+            if (invoice == null)
+            {
+                return NotFound();
+            }
+
+            invoice.IdStatus = 4; // Completed status ID
+            await _context.SaveChangesAsync();
+
+            var client = await _context.Clients
+                                       .Include(c => c.IdAccountNavigation)
+                                       .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
+            if (client?.IdAccount != null)
+            {
+                await CreateNotification(client.IdAccount.Value, "Your invoice has been completed.", invoice.IdInvoice);
+            }
+
+            return NoContent();
+        }
+
+        [HttpPut("{id}/fail")]
+        public async Task<IActionResult> FailInvoice(int id)
+        {
+            var invoice = await _context.Invoices.FindAsync(id);
+            if (invoice == null)
+            {
+                return NotFound();
+            }
+
+            invoice.IdStatus = 5; // Failed status ID
+            await _context.SaveChangesAsync();
+
+            var client = await _context.Clients
+                                       .Include(c => c.IdAccountNavigation)
+                                       .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
+            if (client?.IdAccount != null)
+            {
+                await CreateNotification(client.IdAccount.Value, "Your invoice has failed.", invoice.IdInvoice);
+            }
+
+            return NoContent();
+        }
     }
 
     public class CreateInvoiceRequest
