@@ -26,4 +26,6 @@ public partial class Invoice
     public virtual Warehouse? IdWarehouseNavigation { get; set; }
 
     public virtual ICollection<InvoiceProduct> InvoiceProducts { get; set; } = new List<InvoiceProduct>();
+
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

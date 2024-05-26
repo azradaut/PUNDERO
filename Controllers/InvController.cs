@@ -17,22 +17,32 @@ namespace PUNDERO.Controllers
 
         public InvController(PunderoContext context, ILogger<InvController> logger)
         {
-            _context = context;
-            _logger = logger;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        private async Task CreateNotification(int accountId, string message)
+        private async Task CreateNotification(int accountId, string message, int invoiceId)
         {
-            var notification = new Notification
+            try
             {
-                IdAccount = accountId,
-                Message = message,
-                Seen = false,
-                CreatedAt = DateTime.Now
-            };
+                var notification = new Notification
+                {
+                    IdAccount = accountId,
+                    Message = message,
+                    Seen = false,
+                    CreatedAt = DateTime.Now,
+                    IdInvoice = invoiceId
+                };
 
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Notification created successfully for Account ID: {accountId}, Invoice ID: {invoiceId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error creating notification for Account ID: {accountId}, Invoice ID: {invoiceId}");
+                throw;
+            }
         }
 
         [HttpGet]
@@ -125,14 +135,14 @@ namespace PUNDERO.Controllers
             var coordinator = await _context.Coordinators.FirstOrDefaultAsync();
             if (coordinator?.IdAccount != null)
             {
-                await CreateNotification(coordinator.IdAccount.Value, "New invoice created and pending approval.");
+                await CreateNotification(coordinator.IdAccount.Value, "New invoice created and pending approval.", invoice.IdInvoice);
             }
 
             return Ok(invoice);
         }
 
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateInvoiceStatus(int id, UpdateInvoiceStatusRequest request)
+        public async Task<IActionResult> UpdateInvoiceStatus(int id, InvoiceStatus status)
         {
             var invoice = await _context.Invoices.FindAsync(id);
             if (invoice == null)
@@ -140,7 +150,7 @@ namespace PUNDERO.Controllers
                 return NotFound();
             }
 
-            invoice.IdStatus = request.StatusId;
+            invoice.IdStatus = status.IdStatus;
             await _context.SaveChangesAsync();
 
             var client = await _context.Clients
@@ -148,11 +158,7 @@ namespace PUNDERO.Controllers
                                        .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
             if (client?.IdAccount != null)
             {
-                var statusDescription = await _context.InvoiceStatuses
-                                                      .Where(s => s.IdStatus == request.StatusId)
-                                                      .Select(s => s.Description)
-                                                      .FirstOrDefaultAsync();
-                await CreateNotification(client.IdAccount.Value, $"Your invoice status has been updated to: {statusDescription}");
+                await CreateNotification(client.IdAccount.Value, $"Your invoice status has been updated to: {status.Description}", invoice.IdInvoice);
             }
 
             return NoContent();
@@ -187,6 +193,7 @@ namespace PUNDERO.Controllers
 
                 if (invoice == null)
                 {
+                    _logger.LogError($"Invoice with ID {id} not found.");
                     return NotFound();
                 }
 
@@ -197,11 +204,13 @@ namespace PUNDERO.Controllers
                     var product = await _context.Products.FindAsync(invoiceProduct.IdProduct);
                     if (product == null)
                     {
+                        _logger.LogError($"Product with ID {invoiceProduct.IdProduct} not found.");
                         return BadRequest($"Product with ID {invoiceProduct.IdProduct} not found.");
                     }
 
                     if (product.Quantity < invoiceProduct.OrderQuantity)
                     {
+                        _logger.LogError($"Insufficient quantity for product {product.NameProduct}. Requested: {invoiceProduct.OrderQuantity}, Available: {product.Quantity}");
                         return BadRequest($"Insufficient quantity for product {product.NameProduct}. Requested: {invoiceProduct.OrderQuantity}, Available: {product.Quantity}");
                     }
 
@@ -213,18 +222,25 @@ namespace PUNDERO.Controllers
                 var client = await _context.Clients
                     .Include(c => c.IdAccountNavigation)
                     .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
+
                 if (client?.IdAccount != null)
                 {
-                    await CreateNotification(client.IdAccount.Value, "Your invoice has been approved.");
+                    var statusDescription = await _context.InvoiceStatuses
+                                                          .Where(s => s.IdStatus == invoice.IdStatus)
+                                                          .Select(s => s.Description)
+                                                          .FirstOrDefaultAsync();
+                    await CreateNotification(client.IdAccount.Value, statusDescription, invoice.IdInvoice);
                 }
 
                 return NoContent();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error. Please try again later.");
+                _logger.LogError(ex, $"Error approving invoice with ID {id}: {ex.Message}");
+                return StatusCode(500, $"Internal server error. Please try again later. Error details: {ex.Message}");
             }
         }
+
 
         [HttpPut("{id}/reject")]
         public async Task<IActionResult> RejectInvoice(int id)
@@ -243,7 +259,7 @@ namespace PUNDERO.Controllers
                                        .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
             if (client?.IdAccount != null)
             {
-                await CreateNotification(client.IdAccount.Value, "Your invoice has been rejected.");
+                await CreateNotification(client.IdAccount.Value, "Your invoice has been rejected.", invoice.IdInvoice);
             }
 
             return NoContent();
@@ -261,11 +277,6 @@ namespace PUNDERO.Controllers
     {
         public int ProductId { get; set; }
         public int Quantity { get; set; }
-    }
-
-    public class UpdateInvoiceStatusRequest
-    {
-        public int StatusId { get; set; }
     }
 
     public class AssignDriverAndWarehouseRequest

@@ -17,36 +17,41 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-        // GET: api/Notifications
+        // GET: api
         [HttpGet]
-        public async Task<IActionResult> GetNotifications()
+        public IActionResult GetAllNotifications()
         {
-            var notifications = await _context.Notifications.ToListAsync();
+            var notifications = _context.Notifications.OrderByDescending(wh => wh.IdNotification).ToList();
             return Ok(notifications);
         }
 
-        [HttpGet("{accountId}")]
-        public async Task<IActionResult> GetNotifications(int accountId)
+        // GET: api/Notification/coordinator
+        [HttpGet("coordinator")]
+        public async Task<IActionResult> GetCoordinatorNotifications()
         {
             var notifications = await _context.Notifications
-                .Where(n => n.IdAccount == accountId && (n.Seen == false || n.Seen == null))
+                .Where(n => (n.Seen == false || n.Seen == null) && (n.IdInvoiceNavigation.IdStatus == 1 || n.IdInvoiceNavigation.IdStatus == 6 || n.IdInvoiceNavigation.IdStatus == 7))
                 .OrderByDescending(n => n.CreatedAt)
+                .Include(n => n.IdInvoiceNavigation)
+                .ThenInclude(i => i.IdStatusNavigation)
                 .ToListAsync();
 
-            return Ok(notifications);
+            var notificationDTOs = notifications.Select(n => new
+            {
+                n.IdNotification,
+                n.Message,
+                n.CreatedAt,
+                n.Seen,
+                Status = n.IdInvoiceNavigation.IdStatusNavigation.Description,
+                InvoiceStatusId = n.IdInvoiceNavigation.IdStatus
+            }).ToList();
+
+            return Ok(notificationDTOs);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateNotification(Notification notification)
-        {
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetNotifications), new { accountId = notification.IdAccount }, notification);
-        }
-
-        [HttpPut("{id}/markAsSeen")]
-        public async Task<IActionResult> MarkAsSeen(int id)
+        // PUT: api/Notification/coordinator/{id}/markAsSeen
+        [HttpPut("coordinator/{id}/markAsSeen")]
+        public async Task<IActionResult> MarkCoordinatorNotificationAsSeen(int id)
         {
             var notification = await _context.Notifications.FindAsync(id);
             if (notification == null)
@@ -56,6 +61,82 @@ namespace PUNDERO.Controllers
 
             notification.Seen = true;
             await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // GET: api/Notification/client/{storeName}
+        [HttpGet("client/{storeName}")]
+        public async Task<IActionResult> GetClientNotifications(string storeName)
+        {
+            var notifications = await _context.Notifications
+                .Where(n => (n.Seen == false || n.Seen == null) && (n.IdInvoiceNavigation.IdStatus == 2 || n.IdInvoiceNavigation.IdStatus == 3 || n.IdInvoiceNavigation.IdStatus == 5) && n.IdInvoiceNavigation.IdStoreNavigation.Name == storeName)
+                .OrderByDescending(n => n.CreatedAt)
+                .Include(n => n.IdInvoiceNavigation)
+                .ThenInclude(i => i.IdStatusNavigation)
+                .ToListAsync();
+
+            var notificationDTOs = notifications.Select(n => new
+            {
+                n.IdNotification,
+                n.Message,
+                n.CreatedAt,
+                n.Seen,
+                Status = n.IdInvoiceNavigation.IdStatusNavigation.Description,
+                InvoiceStatusId = n.IdInvoiceNavigation.IdStatus
+            }).ToList();
+
+            return Ok(notificationDTOs);
+        }
+
+        // PUT: api/Notification/client/{id}/markAsSeen
+        [HttpPut("client/{id}/markAsSeen")]
+        public async Task<IActionResult> MarkClientNotificationAsSeen(int id)
+        {
+            var notification = await _context.Notifications.FindAsync(id);
+            if (notification == null)
+            {
+                return NotFound();
+            }
+
+            notification.Seen = true;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // PUT: api/Notification/invoiceStatus/{id}
+        [HttpPut("invoiceStatus/{id}")]
+        public async Task<IActionResult> UpdateInvoiceStatus(int id, [FromBody] InvoiceStatus status)
+        {
+            var invoice = await _context.Invoices.FindAsync(id);
+            if (invoice == null)
+            {
+                return NotFound();
+            }
+
+            invoice.IdStatus = status.IdStatus;
+            await _context.SaveChangesAsync();
+
+            var client = await _context.Clients
+                .Include(c => c.IdAccountNavigation)
+                .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
+
+            if (client?.IdAccount != null)
+            {
+                var message = status.Description;
+                var notification = new Notification
+                {
+                    IdAccount = client.IdAccount.Value,
+                    IdInvoice = invoice.IdInvoice,
+                    Message = message,
+                    Seen = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+            }
 
             return NoContent();
         }

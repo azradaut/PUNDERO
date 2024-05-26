@@ -74,6 +74,10 @@ public partial class PunderoContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("FIRST_NAME");
+            entity.Property(e => e.Image)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("IMAGE");
             entity.Property(e => e.LastName)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -314,6 +318,7 @@ public partial class PunderoContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("CREATED_At");
             entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
+            entity.Property(e => e.IdInvoice).HasColumnName("ID_INVOICE");
             entity.Property(e => e.Message)
                 .HasMaxLength(255)
                 .HasColumnName("MESSAGE");
@@ -324,6 +329,10 @@ public partial class PunderoContext : DbContext
             entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.IdAccount)
                 .HasConstraintName("FK__NOTIFICAT__ID_AC__0B5CAFEA");
+
+            entity.HasOne(d => d.IdInvoiceNavigation).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.IdInvoice)
+                .HasConstraintName("FK_NOTIFICATION_INVOICE");
         });
 
         modelBuilder.Entity<Product>(entity =>
