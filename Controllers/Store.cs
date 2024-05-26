@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PUNDERO.Models;
 
 namespace PUNDERO.Controllers
@@ -12,10 +14,12 @@ namespace PUNDERO.Controllers
     public class StoresController : ControllerBase
     {
         private readonly PunderoContext _context;
+        private readonly ILogger<StoresController> _logger;
 
-        public StoresController(PunderoContext context)
+        public StoresController(PunderoContext context, ILogger<StoresController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: api/Stores
@@ -38,6 +42,39 @@ namespace PUNDERO.Controllers
             }
 
             return Ok(store);
+        }
+
+        [HttpGet("getStoreByName/{storeName}")]
+        public async Task<IActionResult> GetStoreByName(string storeName)
+        {
+            try
+            {
+                var store = await _context.Stores
+                    .Where(s => s.Name == storeName)
+                    .Select(s => new {
+                        IdStore = s.IdStore,
+                        Name = s.Name,
+                        Address = s.Address,
+                        Location = new
+                        {
+                            Latitude = s.Latitude,
+                            Longitude = s.Longitude
+                        }
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (store == null)
+                {
+                    return NotFound("Store not found");
+                }
+
+                return Ok(store);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the store details.");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         // POST: api/Store

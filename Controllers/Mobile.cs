@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PUNDERO.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class MobileController : ControllerBase
     {
@@ -18,12 +17,80 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-        // GET: api/Mobile
+       
+
+
+
+        // GET: api/Mobiles
         [HttpGet]
-        public IActionResult GetMobiles()
+        public IActionResult GetMobilesCoordinator()
         {
-            var mobiles = _context.Mobiles.OrderByDescending(m => m.PhoneNumber).ToList();
+            var mobiles = _context.Mobiles
+                .Include(m => m.MobileDrivers)
+                    .ThenInclude(md => md.IdDriverNavigation)
+                        .ThenInclude(d => d.IdAccountNavigation)
+                .Include(m => m.MobileDrivers)
+                    .ThenInclude(md => md.IdAssignmentTypeNavigation)
+                .Select(m => new
+                {
+                    m.IdMobile,
+                    m.PhoneNumber,
+                    m.Brand,
+                    m.Model,
+                    m.Imei,
+                    AssignedDriver = m.MobileDrivers.Select(md => new
+                    {
+                        IdDriver = md.IdDriver ?? 0,
+                        DriverName = md.IdDriverNavigation != null
+                            ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName
+                            : "Unassigned"
+                    }).FirstOrDefault() ?? new { IdDriver = 0, DriverName = "Unassigned" },
+                    AssignmentType = m.MobileDrivers.Select(md => md.IdAssignmentTypeNavigation != null
+                        ? md.IdAssignmentTypeNavigation.Description
+                        : "Unassigned").FirstOrDefault() ?? "Unassigned"
+                })
+                .ToList();
+
             return Ok(mobiles);
+        }
+
+        // GET: api/Mobiles/{id}
+        [HttpGet("{id}")]
+        public IActionResult GetMobileCoordinator(int id)
+        {
+            var mobile = _context.Mobiles
+                .Include(m => m.MobileDrivers)
+                    .ThenInclude(md => md.IdDriverNavigation)
+                        .ThenInclude(d => d.IdAccountNavigation)
+                .Include(m => m.MobileDrivers)
+                    .ThenInclude(md => md.IdAssignmentTypeNavigation)
+                .Where(m => m.IdMobile == id)
+                .Select(m => new
+                {
+                    m.IdMobile,
+                    m.PhoneNumber,
+                    m.Brand,
+                    m.Model,
+                    m.Imei,
+                    AssignedDriver = m.MobileDrivers.Select(md => new
+                    {
+                        IdDriver = md.IdDriver ?? 0,
+                        DriverName = md.IdDriverNavigation != null
+                            ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName
+                            : "Unassigned"
+                    }).FirstOrDefault() ?? new { IdDriver = 0, DriverName = "Unassigned" },
+                    AssignmentType = m.MobileDrivers.Select(md => md.IdAssignmentTypeNavigation != null
+                        ? md.IdAssignmentTypeNavigation.Description
+                        : "Unassigned").FirstOrDefault() ?? "Unassigned"
+                })
+                .FirstOrDefault();
+
+            if (mobile == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(mobile);
         }
 
         // GET: api/Mobile/1234567890 (Assuming phone number is an int)
@@ -40,7 +107,7 @@ namespace PUNDERO.Controllers
             return Ok(mobile);
         }
 
-        // POST: api/Mobile
+        // POST: api/Mobiles
         [HttpPost]
         public IActionResult PostMobile([FromBody] Mobile mobile)
         {
@@ -52,7 +119,27 @@ namespace PUNDERO.Controllers
             _context.Mobiles.Add(mobile);
             _context.SaveChanges();
 
-            return CreatedAtRoute("GetMobile", new { phoneNumber = mobile.PhoneNumber }, mobile);
+            return CreatedAtAction("GetMobile", new { id = mobile.IdMobile }, mobile);
+        }
+
+        // PUT: api/Mobiles/{id}
+        [HttpPut("{id}")]
+        public IActionResult PutMobileCoordinator(int id, [FromBody] Mobile mobile)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (id != mobile.IdMobile)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(mobile).State = EntityState.Modified;
+            _context.SaveChanges();
+
+            return NoContent();
         }
 
         // PUT: api/Mobile/1234567890 (Assuming phone number is an int)
@@ -75,11 +162,11 @@ namespace PUNDERO.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Mobile/1234567890 (Assuming phone number is an int)
-        [HttpDelete("{phoneNumber}")]
-        public IActionResult DeleteMobile(int phoneNumber) // Adjusted the parameter type to int
+        // DELETE: api/Mobiles/{id}
+        [HttpDelete("{id}")]
+        public IActionResult DeleteMobile(int id)
         {
-            var mobile = _context.Mobiles.FirstOrDefault(m => m.PhoneNumber == phoneNumber);
+            var mobile = _context.Mobiles.FirstOrDefault(i => i.IdMobile == id);
             if (mobile == null)
             {
                 return NotFound();

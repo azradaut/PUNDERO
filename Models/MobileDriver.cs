@@ -9,13 +9,14 @@ public partial class MobileDriver
 
     public DateTime AssignmentStartDate { get; set; }
 
-    public DateTime AssignmentEndDate { get; set; }
+    public DateTime? AssignmentEndDate { get; set; }
 
     public int? IdDriver { get; set; }
 
     public int? IdMobile { get; set; }
 
     public int? IdAssignmentType { get; set; }
+    public string? Note { get; set; }
 
     public virtual AssignmentType? IdAssignmentTypeNavigation { get; set; }
 
