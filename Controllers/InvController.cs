@@ -48,16 +48,26 @@ namespace PUNDERO.Controllers
         [HttpGet]
         public async Task<IActionResult> GetInvoices()
         {
-            var invoices = await _context.Invoices
-                .Include(i => i.IdStoreNavigation)
-                .Include(i => i.IdWarehouseNavigation)
-                .Include(i => i.IdStatusNavigation)
-                .Include(i => i.IdDriverNavigation)
-                .Include(i => i.InvoiceProducts)
-                    .ThenInclude(ip => ip.IdProductNavigation)
-                .ToListAsync();
+            try
+            {
+                var invoices = await _context.Invoices
+                    .Include(i => i.IdStoreNavigation)
+                    .Include(i => i.IdStatusNavigation)
+                    .Select(i => new {
+                        i.IdInvoice,
+                        i.IssueDate,
+                        StoreName = i.IdStoreNavigation.Name,
+                        StatusName = i.IdStatusNavigation.Name
+                    })
+                    .ToListAsync();
 
-            return Ok(invoices);
+                return Ok(invoices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching invoices.");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("pending")]
@@ -84,6 +94,7 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdWarehouseNavigation)
                 .Include(i => i.IdStatusNavigation)
                 .Include(i => i.IdDriverNavigation)
+                    .ThenInclude(d => d.IdAccountNavigation)
                 .Include(i => i.InvoiceProducts)
                     .ThenInclude(ip => ip.IdProductNavigation)
                 .SingleOrDefaultAsync(i => i.IdInvoice == id);
@@ -93,8 +104,27 @@ namespace PUNDERO.Controllers
                 return NotFound();
             }
 
-            return Ok(invoice);
+            var invoiceDetails = new
+            {
+                invoice.IdInvoice,
+                invoice.IssueDate,
+                StoreName = invoice.IdStoreNavigation?.Name,
+                WarehouseName = invoice.IdWarehouseNavigation?.NameWarehouse,
+                DriverName = invoice.IdDriverNavigation != null ? $"{invoice.IdDriverNavigation.IdAccountNavigation.FirstName} {invoice.IdDriverNavigation.IdAccountNavigation.LastName}" : null,
+                StatusName = invoice.IdStatusNavigation?.Name,
+                Products = invoice.InvoiceProducts.Select(ip => new
+                {
+                    ip.IdProductNavigation.NameProduct,
+                    ip.OrderQuantity,
+                    ip.IdProductNavigation.Price,
+                    TotalPrice = ip.OrderQuantity * ip.IdProductNavigation.Price
+                }),
+                TotalAmount = invoice.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price)
+            };
+
+            return Ok(invoiceDetails);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> CreateInvoice(CreateInvoiceRequest request)
