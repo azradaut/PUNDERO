@@ -45,6 +45,30 @@ namespace PUNDERO.Controllers
             return Ok(drivers);
         }
 
+        // GET: api/Driver
+        [HttpGet]
+        public IActionResult GetDriversCoordinator()
+        {
+            var drivers = _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .Include(d => d.IdTachographNavigation)
+                .Include(d => d.MobileDrivers).ThenInclude(md => md.IdMobileNavigation)
+                .Include(d => d.VehicleDrivers).ThenInclude(vd => vd.IdVehicleNavigation)
+                .Select(d => new
+                {
+                    d.IdDriver,
+                    FirstName = d.IdAccountNavigation.FirstName,
+                    LastName = d.IdAccountNavigation.LastName,
+                    Email = d.IdAccountNavigation.Email,
+                    Type = "Driver",
+                    d.LicenseCategory,
+                    TachographLabel = d.IdTachographNavigation.Label
+                })
+                .ToList();
+
+            return Ok(drivers);
+        }
+
 
 
         [HttpGet("GetDriversWithName")]
