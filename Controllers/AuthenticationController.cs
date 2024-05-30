@@ -41,6 +41,7 @@ namespace PUNDERO.Controllers
             await _context.SaveChangesAsync();
 
             var storeName = string.Empty;
+            var clientId = 0;  // Initialize clientId
 
             if (account.Type == 3)
             {
@@ -48,9 +49,13 @@ namespace PUNDERO.Controllers
                     .Include(c => c.Stores)
                     .SingleOrDefaultAsync(c => c.IdAccount == account.IdAccount);
 
-                if (client != null && client.Stores.Any())
+                if (client != null)
                 {
-                    storeName = client.Stores.First().Name;
+                    clientId = client.IdClient;  // Set the clientId
+                    if (client.Stores.Any())
+                    {
+                        storeName = client.Stores.First().Name;
+                    }
                 }
             }
 
@@ -60,14 +65,16 @@ namespace PUNDERO.Controllers
                 Type = account.Type,
                 FirstName = account.FirstName,
                 LastName = account.LastName,
-                StoreName = storeName
+                StoreName = storeName,
+                ClientId = clientId  // Include clientId in the response
             });
         }
-    }
 
-    public class LoginRequest
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
+
+        public class LoginRequest
+        {
+            public string Email { get; set; }
+            public string Password { get; set; }
+        }
     }
 }
