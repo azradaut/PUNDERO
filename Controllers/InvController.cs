@@ -86,20 +86,68 @@ namespace PUNDERO.Controllers
             }
         }
 
-        [HttpGet("pending")]
-        public async Task<IActionResult> GetPendingInvoices()
+        [HttpGet("store/{storeName}")]
+        public async Task<IActionResult> GetInvoicesByStoreName(string storeName)
         {
-            var pendingInvoices = await _context.Invoices
-                .Where(i => i.IdStatus == 1) // Assuming status ID 1 is for pending
-                .Include(i => i.IdStoreNavigation)
-                .Include(i => i.IdWarehouseNavigation)
-                .Include(i => i.IdStatusNavigation)
-                .Include(i => i.IdDriverNavigation)
-                .Include(i => i.InvoiceProducts)
-                    .ThenInclude(ip => ip.IdProductNavigation)
-                .ToListAsync();
+            try
+            {
+                var invoices = await _context.Invoices
+                    .Include(i => i.IdStoreNavigation)
+                    .Include(i => i.IdStatusNavigation)
+                    .Where(i => i.IdStoreNavigation.Name == storeName)
+                    .Select(i => new {
+                        i.IdInvoice,
+                        i.IssueDate,
+                        StoreName = i.IdStoreNavigation.Name,
+                        StatusName = i.IdStatusNavigation.Name
+                    })
+                    .ToListAsync();
 
-            return Ok(pendingInvoices);
+                return Ok(invoices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching invoices for the store.");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("delivered/{storeName}")]
+        public async Task<IActionResult> GetDeliveredInvoicesByStoreName(string storeName)
+        {
+            try
+            {
+                var deliveredInvoices = await _context.Invoices
+                    .Include(i => i.IdStoreNavigation)
+                    .Include(i => i.IdStatusNavigation)
+                    .Include(i => i.IdDriverNavigation)
+                        .ThenInclude(d => d.IdAccountNavigation)
+                    .Include(i => i.InvoiceProducts)
+                        .ThenInclude(ip => ip.IdProductNavigation)
+                    .Where(i => i.IdStoreNavigation.Name == storeName && i.IdStatus == 5) // Assuming status ID 5 is for delivered
+                    .Select(i => new {
+                        i.IdInvoice,
+                        i.IssueDate,
+                        StoreName = i.IdStoreNavigation.Name,
+                        StatusName = i.IdStatusNavigation.Name,
+                        DriverName = i.IdDriverNavigation != null ? $"{i.IdDriverNavigation.IdAccountNavigation.FirstName} {i.IdDriverNavigation.IdAccountNavigation.LastName}" : null,
+                        Products = i.InvoiceProducts.Select(ip => new {
+                            ip.IdProductNavigation.NameProduct,
+                            ip.OrderQuantity,
+                            ip.IdProductNavigation.Price,
+                            TotalPrice = ip.OrderQuantity * ip.IdProductNavigation.Price
+                        }),
+                        TotalAmount = i.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price)
+                    })
+                    .ToListAsync();
+
+                return Ok(deliveredInvoices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching delivered invoices for the store.");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("delivered/{storeName}")]
@@ -350,7 +398,11 @@ namespace PUNDERO.Controllers
         {
             try
             {
-                var invoice = await _context.Invoices
+                var invoices = await _context.Invoices
+                    .Where(i => i.IdStoreNavigation.Name == storeName && i.IdStatus == 5) // Assuming status ID 5 is for delivered
+                    .Include(i => i.IdStoreNavigation)
+                    .Include(i => i.IdDriverNavigation)
+                        .ThenInclude(d => d.IdAccountNavigation)
                     .Include(i => i.InvoiceProducts)
                     .ThenInclude(ip => ip.IdProductNavigation)
                     .SingleOrDefaultAsync(i => i.IdInvoice == id);
@@ -388,7 +440,7 @@ namespace PUNDERO.Controllers
                     await CreateNotification(client.IdAccount.Value, "Your invoice has been approved.");
                 }
 
-                return NoContent();
+                return Ok(invoices);
             }
             catch (Exception ex)
             {
@@ -415,8 +467,6 @@ namespace PUNDERO.Controllers
             {
                 await CreateNotification(client.IdAccount.Value, "Your invoice has been rejected.");
             }
-
-            return NoContent();
         }
 
 
