@@ -131,14 +131,14 @@ namespace PUNDERO.Controllers
             return Ok(invoices);
         }
 
-
+        [HttpGet]
         public IActionResult GetDeliveredInvoicesForClient(int driverId)
         {
             var invoices = _context.Invoices
                 .Include(i => i.IdStatusNavigation)
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
-                .Where(i => i.IdDriver == driverId && i.IdStatus == 4) // Only deliovered invoices
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 5) // Only deliovered invoices
                 .Select(i => new InvoiceDto
                 {
                     IdInvoice = i.IdInvoice,
@@ -164,7 +164,7 @@ namespace PUNDERO.Controllers
                 .Include(i => i.IdStatusNavigation)
                 .Include(i => i.IdStoreNavigation)
                 .Include(i => i.IdWarehouseNavigation)
-                .Where(i => i.IdDriver == driverId && i.IdStatus == 3) // Only In Transit invoices
+                .Where(i => i.IdDriver == driverId && i.IdStatus == 4) // Only In Transit invoices
                 .Select(i => new InvoiceDto
                 {
                     IdInvoice = i.IdInvoice,
