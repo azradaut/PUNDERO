@@ -51,6 +51,16 @@ namespace PUNDERO.Controllers
             return Ok(vehicles);
         }
 
+        [HttpGet("GetUnassignedVehicles")]
+        public async Task<IActionResult> GetUnassignedVehicles()
+        {
+            var vehicles = await _context.Vehicles
+                .Where(v => !_context.VehicleDrivers.Any(vd => vd.IdVehicle == v.IdVehicle))
+                .Select(v => new { v.IdVehicle, v.Registration })
+                .ToListAsync();
+            return Ok(vehicles);
+        }
+
         // GET: api/Vehicles/registration
         [HttpGet("{registration}")]
         public IActionResult GetVehicleByRegistration(string registration)
