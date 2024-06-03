@@ -13,5 +13,11 @@ public partial class Mobile
 
     public double LkLatitude { get; set; }
 
+    public string? Brand { get; set; }
+
+    public string? Model { get; set; }
+
+    public string? Imei { get; set; }
+
     public virtual ICollection<MobileDriver> MobileDrivers { get; set; } = new List<MobileDriver>();
 }

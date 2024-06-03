@@ -98,7 +98,7 @@ namespace PUNDERO.Controllers
             var client = new Client
             {
                 IdAccount = account.IdAccount,
-                NameStore = "/" // Default value for NameStore
+               
             };
 
             _context.Clients.Add(client);
@@ -111,7 +111,6 @@ namespace PUNDERO.Controllers
                 account.LastName,
                 account.Email,
                 account.Type,
-                Store = client.NameStore,
                 account.Image
             });
         }
