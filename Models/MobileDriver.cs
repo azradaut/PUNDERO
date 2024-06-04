@@ -16,6 +16,7 @@ public partial class MobileDriver
     public int? IdMobile { get; set; }
 
     public int? IdAssignmentType { get; set; }
+
     public string? Note { get; set; }
 
     public virtual AssignmentType? IdAssignmentTypeNavigation { get; set; }
