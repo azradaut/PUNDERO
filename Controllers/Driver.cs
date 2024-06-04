@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
@@ -22,10 +22,30 @@ namespace PUNDERO.Controllers
         [HttpGet]
         public IActionResult GetDrivers()
         {
-            var drivers = _context.Drivers.ToList();
+            var drivers = _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .Include(d => d.IdTachographNavigation)
+                .Include(d => d.MobileDrivers).ThenInclude(md => md.IdMobileNavigation)
+                .Include(d => d.VehicleDrivers).ThenInclude(vd => vd.IdVehicleNavigation)
+                .Select(d => new
+                {
+                    d.IdDriver,
+                    FirstName = d.IdAccountNavigation.FirstName,
+                    LastName = d.IdAccountNavigation.LastName,
+                    Email = d.IdAccountNavigation.Email,
+                    Type = "Driver",
+                    d.LicenseNumber,
+                    d.LicenseCategory,
+                    TachographLabel = d.IdTachographNavigation.Label,
+                    AssignedMobile = d.MobileDrivers.Select(md => md.IdMobileNavigation.PhoneNumber).FirstOrDefault(),
+                    AssignedVehicle = d.VehicleDrivers.Select(vd => vd.IdVehicleNavigation.Registration).FirstOrDefault()
+                })
+                .ToList();
+
             return Ok(drivers);
         }
 
+        // GET: api/Driver
         [HttpGet]
         public IActionResult GetDriversCoordinator()
         {
@@ -48,97 +68,86 @@ namespace PUNDERO.Controllers
 
             return Ok(drivers);
         }
-        // GET: api/Driver/IdAccount
-        [HttpGet("{IdAccount}")]
-        public IActionResult GetDriverByIdAccount(int IdAccount)
+
+
+
+        [HttpGet("GetDriversWithName")]
+        public async Task<IActionResult> GetDriversWithName()
         {
-            var driver = _context.Drivers.FirstOrDefault(v => v.IdAccount == IdAccount);
-
-            if (driver == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(driver);
-        }
-
-        // GET: api/Driver/IdDriver
-        [HttpGet("{id}")]
-        public IActionResult GetDriver(int id)
-        {
-            var driver = _context.Drivers.FirstOrDefault(v => v.IdDriver == id);
-
-            if (driver == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(driver);
-        }
-
-        [HttpGet]
-        public IActionResult GetDriversWithName()
-        {
-            var drivers = _context.Drivers
+            var drivers = await _context.Drivers
                 .Include(d => d.IdAccountNavigation)
-                .Select(d => new
-                {
+                .Select(d => new {
                     d.IdDriver,
-                    FirstName = d.IdAccountNavigation.FirstName,
-                    LastName = d.IdAccountNavigation.LastName
+                    d.IdAccountNavigation.FirstName,
+                    d.IdAccountNavigation.LastName
                 })
-                .ToList();
+                .ToListAsync();
             return Ok(drivers);
         }
-        // POST: api/Driver
+
+
+
+        // POST: api/Driver/AddDriver
         [HttpPost]
-        public IActionResult PostDriver([FromBody] Driver driver)
+        public async Task<IActionResult> AddDriver([FromBody] DriverViewModel model)
         {
             if (!ModelState.IsValid)
             {
+                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => e.ErrorMessage)).ToList();
+                foreach (var error in errors)
+                {
+                    Console.WriteLine(error);
+                }
                 return BadRequest(ModelState);
             }
+
+            var account = new Account
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                Password = model.Password,
+                Type = 2, // Driver type
+                Image = model.Image // Optional image field
+            };
+
+            _context.Accounts.Add(account);
+            await _context.SaveChangesAsync();
+
+            var tachograph = new Tachograph
+            {
+                Label = model.TachographLabel,
+                IssueDate = model.TachographIssueDate,
+                ExpiryDate = model.TachographExpiryDate
+            };
+
+            _context.Tachographs.Add(tachograph);
+            await _context.SaveChangesAsync();
+
+            var driver = new Driver
+            {
+                IdAccount = account.IdAccount,
+                LicenseNumber = model.LicenseNumber,
+                LicenseCategory = model.LicenseCategory,
+                IdTachograph = tachograph.IdTachograph,
+                PrivateMobile = 0
+            };
 
             _context.Drivers.Add(driver);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            return CreatedAtRoute("GetDriver", new { id = driver.IdDriver }, driver);
-        }
-
-        // PUT: api/Driver/1
-        [HttpPut("{id}")]
-        public IActionResult PutDriver(int id, [FromBody] Driver driver)
-        {
-            if (!ModelState.IsValid)
+            return Ok(new
             {
-                return BadRequest(ModelState);
-            }
-
-            if (id != driver.IdDriver)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(driver).State = EntityState.Modified;
-            _context.SaveChanges();
-
-            return NoContent();
-        }
-
-        // DELETE: api/Driver/1
-        [HttpDelete("{id}")]
-        public IActionResult DeleteDriver(int id)
-        {
-            var driver = _context.Drivers.FirstOrDefault(d => d.IdDriver == id);
-            if (driver == null)
-            {
-                return NotFound();
-            }
-
-            _context.Drivers.Remove(driver);
-            _context.SaveChanges();
-
-            return Ok(driver);
+                driver.IdDriver,
+                account.FirstName,
+                account.LastName,
+                account.Email,
+                account.Type,
+                driver.LicenseNumber,
+                driver.LicenseCategory,
+                TachographLabel = tachograph.Label,
+                account.Image
+            });
         }
     }
 }

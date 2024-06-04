@@ -23,7 +23,7 @@ namespace PUNDERO.Controllers
         {
             var assignments = await _context.MobileDrivers
                 .Include(md => md.IdDriverNavigation)
-                    .ThenInclude(d => d.IdAccountNavigation)
+                .ThenInclude(d => d.IdAccountNavigation)
                 .Include(md => md.IdMobileNavigation)
                 .Include(md => md.IdAssignmentTypeNavigation)
                 .Select(md => new
@@ -131,7 +131,27 @@ namespace PUNDERO.Controllers
             existingAssignment.AssignmentEndDate = mobileDriver.AssignmentEndDate ?? new DateTime(1, 1, 1); // Default to 0000-00-00 if null
             existingAssignment.Note = mobileDriver.Note;
 
+            var mobiles = await _context.Mobiles.ToListAsync();
+            var assignmentTypes = await _context.AssignmentTypes.ToListAsync();
+
+            var driver = drivers.FirstOrDefault(d => $"{d.IdAccountNavigation.FirstName} {d.IdAccountNavigation.LastName}" == mobileDriverVM.DriverName);
+            var mobile = mobiles.FirstOrDefault(m => m.PhoneNumber == mobileDriverVM.MobilePhoneNumber);
+            var assignmentType = assignmentTypes.FirstOrDefault(at => at.Description == mobileDriverVM.AssignmentType);
+
+            if (driver == null || mobile == null || assignmentType == null)
+            {
+                return BadRequest("Invalid driver, mobile, or assignment type");
+            }
+
+            mobileDriver.IdDriver = driver.IdDriver;
+            mobileDriver.IdMobile = mobile.IdMobile;
+            mobileDriver.IdAssignmentType = assignmentType.IdAssignmentType;
+            mobileDriver.AssignmentStartDate = mobileDriverVM.AssignmentStartDate;
+            mobileDriver.AssignmentEndDate = mobileDriverVM.AssignmentEndDate;
+
+            _context.Entry(mobileDriver).State = EntityState.Modified;
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
@@ -196,6 +216,13 @@ namespace PUNDERO.Controllers
                 .ToListAsync();
 
             return Ok(drivers);
+        }
+
+        [HttpGet("GetAssignmentTypes")]
+        public async Task<IActionResult> GetAssignmentTypes()
+        {
+            var assignmentTypes = await _context.AssignmentTypes.ToListAsync();
+            return Ok(assignmentTypes);
         }
     }
 }
