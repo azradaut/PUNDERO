@@ -304,6 +304,10 @@ public partial class PunderoContext : DbContext
             entity.Property(e => e.IdAssignmentType).HasColumnName("ID_ASSIGNMENT_TYPE");
             entity.Property(e => e.IdDriver).HasColumnName("ID_DRIVER");
             entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
+            entity.Property(e => e.Note)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("NOTE");
 
             entity.HasOne(d => d.IdAssignmentTypeNavigation).WithMany(p => p.MobileDrivers)
                 .HasForeignKey(d => d.IdAssignmentType)
