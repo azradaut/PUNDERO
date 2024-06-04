@@ -134,10 +134,6 @@ public partial class PunderoContext : DbContext
 
             entity.Property(e => e.IdClient).HasColumnName("ID_CLIENT");
             entity.Property(e => e.IdAccount).HasColumnName("ID_ACCOUNT");
-            entity.Property(e => e.NameStore)
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasColumnName("NAME_STORE");
 
             entity.HasOne(d => d.IdAccountNavigation).WithMany(p => p.Clients)
                 .HasForeignKey(d => d.IdAccount)
@@ -209,6 +205,10 @@ public partial class PunderoContext : DbContext
             entity.Property(e => e.IssueDate)
                 .HasColumnType("datetime")
                 .HasColumnName("ISSUE_DATE");
+            entity.Property(e => e.Note)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("NOTE");
 
             entity.HasOne(d => d.IdDriverNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.IdDriver)
@@ -271,8 +271,20 @@ public partial class PunderoContext : DbContext
             entity.ToTable("MOBILE");
 
             entity.Property(e => e.IdMobile).HasColumnName("ID_MOBILE");
+            entity.Property(e => e.Brand)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("BRAND");
+            entity.Property(e => e.Imei)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("IMEI");
             entity.Property(e => e.LkLatitude).HasColumnName("LK_LATITUDE");
             entity.Property(e => e.LkLongitude).HasColumnName("LK_LONGITUDE");
+            entity.Property(e => e.Model)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("MODEL");
             entity.Property(e => e.PhoneNumber).HasColumnName("PHONE_NUMBER");
         });
 

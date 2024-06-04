@@ -7,8 +7,6 @@ public partial class Client
 {
     public int IdClient { get; set; }
 
-    public string NameStore { get; set; } = null!;
-
     public int? IdAccount { get; set; }
 
     public virtual Account? IdAccountNavigation { get; set; }
