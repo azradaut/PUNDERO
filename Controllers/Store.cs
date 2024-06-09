@@ -9,7 +9,7 @@ using PUNDERO.Models;
 
 namespace PUNDERO.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class StoresController : ControllerBase
     {
@@ -22,17 +22,15 @@ namespace PUNDERO.Controllers
             _logger = logger;
         }
 
-        // GET: api/Stores
-        [HttpGet]
-        public IActionResult GetStores()
+        [HttpGet("GetStores")]
+        public async Task<IActionResult> GetStores()
         {
-            var stores = _context.Stores.OrderByDescending(s => s.IdStore).ToList();
+            var stores = await _context.Stores.Select(s => new { s.IdStore, s.Name }).ToListAsync();
             return Ok(stores);
         }
 
-        // GET: api/Stores/5
         [HttpGet("{id}")]
-        public IActionResult GetStores(int id)
+        public IActionResult GetStore(int id)
         {
             var store = _context.Stores.FirstOrDefault(s => s.IdStore == id);
 
@@ -77,7 +75,6 @@ namespace PUNDERO.Controllers
             }
         }
 
-        // POST: api/Store
         [HttpPost]
         public IActionResult PostStore([FromBody] Store store)
         {
@@ -92,7 +89,6 @@ namespace PUNDERO.Controllers
             return CreatedAtRoute("GetStore", new { id = store.IdStore }, store);
         }
 
-        // PUT: api/Store/5
         [HttpPut("{id}")]
         public IActionResult PutStore(int id, [FromBody] Store store)
         {
@@ -112,7 +108,6 @@ namespace PUNDERO.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Store/5
         [HttpDelete("{id}")]
         public IActionResult DeleteStore(int id)
         {
