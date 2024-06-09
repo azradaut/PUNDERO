@@ -16,7 +16,7 @@ namespace PUNDERO.Models
         [Required]
         public string Password { get; set; }
         public string Store { get; set; }
-        public string Image { get; set; }
-        public IFormFile ImageFile { get; set; }
+        public string? Image { get; set; }
+        public IFormFile? ImageFile { get; set; }
     }
 }

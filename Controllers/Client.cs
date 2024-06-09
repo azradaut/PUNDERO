@@ -136,7 +136,7 @@ namespace PUNDERO.Controllers
             account.Email = model.Email;
             account.Password = model.Password;
 
-            if (model.ImageFile != null)
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
             {
                 var imagePath = Path.Combine("wwwroot", "images", "profile_images", $"{model.FirstName}{model.LastName}.jpg");
                 using (var stream = new FileStream(imagePath, FileMode.Create))
@@ -151,6 +151,7 @@ namespace PUNDERO.Controllers
 
             return NoContent();
         }
+
 
 
         // DELETE: api/Client/DeleteClient/5
