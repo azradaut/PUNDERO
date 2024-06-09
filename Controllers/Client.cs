@@ -111,21 +111,26 @@ namespace PUNDERO.Controllers
             });
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateClient(int id, [FromForm] ClientViewModel model)
+        [HttpPut("{accountId}")]
+        public async Task<IActionResult> UpdateClient(int accountId, [FromForm] ClientViewModel model)
         {
             if (!ModelState.IsValid)
             {
+                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => new { x.Key, e.ErrorMessage })).ToList();
+                foreach (var error in errors)
+                {
+                    Console.WriteLine($"Key: {error.Key}, Error: {error.ErrorMessage}");
+                }
                 return BadRequest(ModelState);
             }
 
-            var client = await _context.Clients.FindAsync(id);
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.IdAccount == accountId);
             if (client == null)
             {
                 return NotFound();
             }
 
-            var account = await _context.Accounts.FindAsync(client.IdAccount);
+            var account = await _context.Accounts.FindAsync(accountId);
             if (account == null)
             {
                 return NotFound();
