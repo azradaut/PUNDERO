@@ -1,5 +1,7 @@
 ﻿public class DriverViewModel
 {
+    public int? IdDriver { get; set; }
+    public int? IdAccount { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string Email { get; set; }
@@ -9,5 +11,6 @@
     public string TachographLabel { get; set; }
     public DateTime TachographIssueDate { get; set; }
     public DateTime TachographExpiryDate { get; set; }
-    public string Image { get; set; } // Optional field
+    public string? Image { get; set; }
+    public IFormFile? ImageFile { get; set; }
 }

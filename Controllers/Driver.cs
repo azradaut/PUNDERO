@@ -18,7 +18,7 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-        // GET: api/Driver
+        // GET: api/Driver/GetDrivers
         [HttpGet]
         public IActionResult GetDrivers()
         {
@@ -27,77 +27,64 @@ namespace PUNDERO.Controllers
                 .Include(d => d.IdTachographNavigation)
                 .Include(d => d.MobileDrivers).ThenInclude(md => md.IdMobileNavigation)
                 .Include(d => d.VehicleDrivers).ThenInclude(vd => vd.IdVehicleNavigation)
-                .Select(d => new
+                .Select(d => new DriverViewModel
                 {
-                    d.IdDriver,
+                    IdDriver = d.IdDriver,
+                    IdAccount = d.IdAccount,
                     FirstName = d.IdAccountNavigation.FirstName,
                     LastName = d.IdAccountNavigation.LastName,
                     Email = d.IdAccountNavigation.Email,
-                    Type = "Driver",
-                    d.LicenseNumber,
-                    d.LicenseCategory,
+                    LicenseNumber = d.LicenseNumber,
+                    LicenseCategory = d.LicenseCategory,
                     TachographLabel = d.IdTachographNavigation.Label,
-                    AssignedMobile = d.MobileDrivers.Select(md => md.IdMobileNavigation.PhoneNumber).FirstOrDefault(),
-                    AssignedVehicle = d.VehicleDrivers.Select(vd => vd.IdVehicleNavigation.Registration).FirstOrDefault()
+                    TachographIssueDate = d.IdTachographNavigation.IssueDate,
+                    TachographExpiryDate = d.IdTachographNavigation.ExpiryDate,
+                    Image = d.IdAccountNavigation.Image
                 })
                 .ToList();
 
             return Ok(drivers);
         }
 
-        // GET: api/Driver
-        [HttpGet]
-        public IActionResult GetDriversCoordinator()
+        // GET: api/Driver/GetDriverByIdAccount/5
+        [HttpGet("{id}")]
+        public IActionResult GetDriverByIdAccount(int id)
         {
-            var drivers = _context.Drivers
+            var driver = _context.Drivers
                 .Include(d => d.IdAccountNavigation)
                 .Include(d => d.IdTachographNavigation)
-                .Include(d => d.MobileDrivers).ThenInclude(md => md.IdMobileNavigation)
-                .Include(d => d.VehicleDrivers).ThenInclude(vd => vd.IdVehicleNavigation)
-                .Select(d => new
+                .Where(d => d.IdAccount == id)
+                .Select(d => new DriverViewModel
                 {
-                    d.IdDriver,
+                    IdDriver = d.IdDriver,
+                    IdAccount = d.IdAccount,
                     FirstName = d.IdAccountNavigation.FirstName,
                     LastName = d.IdAccountNavigation.LastName,
                     Email = d.IdAccountNavigation.Email,
-                    Type = "Driver",
-                    d.LicenseCategory,
-                    TachographLabel = d.IdTachographNavigation.Label
+                    Password = d.IdAccountNavigation.Password,
+                    LicenseNumber = d.LicenseNumber,
+                    LicenseCategory = d.LicenseCategory,
+                    TachographLabel = d.IdTachographNavigation.Label,
+                    TachographIssueDate = d.IdTachographNavigation.IssueDate,
+                    TachographExpiryDate = d.IdTachographNavigation.ExpiryDate,
+                    Image = d.IdAccountNavigation.Image
                 })
-                .ToList();
+                .FirstOrDefault();
 
-            return Ok(drivers);
+            if (driver == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(driver);
         }
-
-
-
-        [HttpGet("GetDriversWithName")]
-        public async Task<IActionResult> GetDriversWithName()
-        {
-            var drivers = await _context.Drivers
-                .Include(d => d.IdAccountNavigation)
-                .Select(d => new {
-                    d.IdDriver,
-                    d.IdAccountNavigation.FirstName,
-                    d.IdAccountNavigation.LastName
-                })
-                .ToListAsync();
-            return Ok(drivers);
-        }
-
-
 
         // POST: api/Driver/AddDriver
         [HttpPost]
-        public async Task<IActionResult> AddDriver([FromBody] DriverViewModel model)
+        public async Task<IActionResult> AddDriver([FromForm] DriverViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => e.ErrorMessage)).ToList();
-                foreach (var error in errors)
-                {
-                    Console.WriteLine(error);
-                }
                 return BadRequest(ModelState);
             }
 
@@ -108,7 +95,7 @@ namespace PUNDERO.Controllers
                 Email = model.Email,
                 Password = model.Password,
                 Type = 2, // Driver type
-                Image = model.Image // Optional image field
+                Image = model.Image
             };
 
             _context.Accounts.Add(account);
@@ -136,18 +123,125 @@ namespace PUNDERO.Controllers
             _context.Drivers.Add(driver);
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok(new DriverViewModel
             {
-                driver.IdDriver,
-                account.FirstName,
-                account.LastName,
-                account.Email,
-                account.Type,
-                driver.LicenseNumber,
-                driver.LicenseCategory,
+                IdDriver = driver.IdDriver,
+                IdAccount = account.IdAccount,
+                FirstName = account.FirstName,
+                LastName = account.LastName,
+                Email = account.Email,
+                LicenseNumber = driver.LicenseNumber,
+                LicenseCategory = driver.LicenseCategory,
                 TachographLabel = tachograph.Label,
-                account.Image
+                TachographIssueDate = tachograph.IssueDate,
+                TachographExpiryDate = tachograph.ExpiryDate,
+                Image = account.Image
             });
+        }
+
+        [HttpPut("{accountId}")]
+        public async Task<IActionResult> UpdateDriver(int accountId, [FromForm] DriverViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => new { x.Key, e.ErrorMessage })).ToList();
+                foreach (var error in errors)
+                {
+                    Console.WriteLine($"Key: {error.Key}, Error: {error.ErrorMessage}");
+                }
+                return BadRequest(ModelState);
+            }
+
+            var driver = await _context.Drivers.FirstOrDefaultAsync(d => d.IdAccount == accountId);
+            if (driver == null)
+            {
+                return NotFound();
+            }
+
+            var account = await _context.Accounts.FindAsync(accountId);
+            if (account == null)
+            {
+                return NotFound();
+            }
+
+            account.FirstName = model.FirstName;
+            account.LastName = model.LastName;
+            account.Email = model.Email;
+
+            // Retain existing password if not provided
+            if (!string.IsNullOrEmpty(model.Password))
+            {
+                account.Password = model.Password;
+            }
+
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
+            {
+                var imagePath = Path.Combine("wwwroot", "images", "profile_images", $"{model.FirstName}{model.LastName}.jpg");
+                using (var stream = new FileStream(imagePath, FileMode.Create))
+                {
+                    await model.ImageFile.CopyToAsync(stream);
+                }
+                account.Image = $"/images/profile_images/{model.FirstName}{model.LastName}.jpg";
+            }
+
+            driver.LicenseNumber = model.LicenseNumber;
+            driver.LicenseCategory = model.LicenseCategory;
+            driver.IdTachographNavigation.Label = model.TachographLabel;
+            driver.IdTachographNavigation.IssueDate = model.TachographIssueDate;
+            driver.IdTachographNavigation.ExpiryDate = model.TachographExpiryDate;
+
+            _context.Entry(account).State = EntityState.Modified;
+            _context.Entry(driver).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // DELETE: api/Driver/DeleteDriver/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteDriver(int id)
+        {
+            var driver = await _context.Drivers.FindAsync(id);
+            if (driver == null)
+            {
+                return NotFound();
+            }
+
+            var account = await _context.Accounts.FindAsync(driver.IdAccount);
+            if (account != null)
+            {
+                _context.Accounts.Remove(account);
+            }
+
+            var tachograph = await _context.Tachographs.FindAsync(driver.IdTachograph);
+            if (tachograph != null)
+            {
+                _context.Tachographs.Remove(tachograph);
+            }
+
+            _context.Drivers.Remove(driver);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // POST: api/Driver/UploadImage
+        [HttpPost("UploadImage")]
+        public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string fileName)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file uploaded.");
+            }
+
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profile_images", fileName);
+
+            using (var stream = new FileStream(path, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return Ok(new { path });
         }
     }
 }

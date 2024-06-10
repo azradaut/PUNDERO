@@ -56,6 +56,7 @@ namespace PUNDERO.Controllers
                     FirstName = c.IdAccountNavigation.FirstName,
                     LastName = c.IdAccountNavigation.LastName,
                     Email = c.IdAccountNavigation.Email,
+                    Password = c.IdAccountNavigation.Password,  // Include password
                     Store = c.Stores.Select(s => s.Name).FirstOrDefault(),
                     Image = c.IdAccountNavigation.Image
                 })
@@ -68,6 +69,7 @@ namespace PUNDERO.Controllers
 
             return Ok(client);
         }
+
 
         // POST: api/Client/AddClient
         [HttpPost]
@@ -139,7 +141,12 @@ namespace PUNDERO.Controllers
             account.FirstName = model.FirstName;
             account.LastName = model.LastName;
             account.Email = model.Email;
-            account.Password = model.Password;
+
+            // Retain existing password if not provided
+            if (!string.IsNullOrEmpty(model.Password))
+            {
+                account.Password = model.Password;
+            }
 
             if (model.ImageFile != null && model.ImageFile.Length > 0)
             {
@@ -156,6 +163,7 @@ namespace PUNDERO.Controllers
 
             return NoContent();
         }
+
 
 
 
