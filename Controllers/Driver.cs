@@ -79,13 +79,23 @@ namespace PUNDERO.Controllers
             return Ok(driver);
         }
 
-        // POST: api/Driver/AddDriver
         [HttpPost]
         public async Task<IActionResult> AddDriver([FromForm] DriverViewModel model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            string imagePath = null;
+
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
+            {
+                imagePath = Path.Combine("wwwroot", "images", "profile_images", $"{model.FirstName}{model.LastName}.jpg");
+                using (var stream = new FileStream(imagePath, FileMode.Create))
+                {
+                    await model.ImageFile.CopyToAsync(stream);
+                }
             }
 
             var account = new Account
@@ -95,7 +105,7 @@ namespace PUNDERO.Controllers
                 Email = model.Email,
                 Password = model.Password,
                 Type = 2, // Driver type
-                Image = model.Image
+                Image = imagePath != null ? $"/images/profile_images/{model.FirstName}{model.LastName}.jpg" : null
             };
 
             _context.Accounts.Add(account);
@@ -139,6 +149,67 @@ namespace PUNDERO.Controllers
             });
         }
 
+
+        //// POST: api/Driver/AddDriver
+        //[HttpPost]
+        //public async Task<IActionResult> AddDriver([FromForm] DriverViewModel model)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
+
+        //    var account = new Account
+        //    {
+        //        FirstName = model.FirstName,
+        //        LastName = model.LastName,
+        //        Email = model.Email,
+        //        Password = model.Password,
+        //        Type = 2, // Driver type
+        //        Image = model.Image
+        //    };
+
+        //    _context.Accounts.Add(account);
+        //    await _context.SaveChangesAsync();
+
+        //    var tachograph = new Tachograph
+        //    {
+        //        Label = model.TachographLabel,
+        //        IssueDate = model.TachographIssueDate,
+        //        ExpiryDate = model.TachographExpiryDate
+        //    };
+
+        //    _context.Tachographs.Add(tachograph);
+        //    await _context.SaveChangesAsync();
+
+        //    var driver = new Driver
+        //    {
+        //        IdAccount = account.IdAccount,
+        //        LicenseNumber = model.LicenseNumber,
+        //        LicenseCategory = model.LicenseCategory,
+        //        IdTachograph = tachograph.IdTachograph,
+        //        PrivateMobile = 0
+        //    };
+
+        //    _context.Drivers.Add(driver);
+        //    await _context.SaveChangesAsync();
+
+        //    return Ok(new DriverViewModel
+        //    {
+        //        IdDriver = driver.IdDriver,
+        //        IdAccount = account.IdAccount,
+        //        FirstName = account.FirstName,
+        //        LastName = account.LastName,
+        //        Email = account.Email,
+        //        LicenseNumber = driver.LicenseNumber,
+        //        LicenseCategory = driver.LicenseCategory,
+        //        TachographLabel = tachograph.Label,
+        //        TachographIssueDate = tachograph.IssueDate,
+        //        TachographExpiryDate = tachograph.ExpiryDate,
+        //        Image = account.Image
+        //    });
+        //}
+
         [HttpPut("{accountId}")]
         public async Task<IActionResult> UpdateDriver(int accountId, [FromForm] DriverViewModel model)
         {
@@ -152,7 +223,7 @@ namespace PUNDERO.Controllers
                 return BadRequest(ModelState);
             }
 
-            var driver = await _context.Drivers.FirstOrDefaultAsync(d => d.IdAccount == accountId);
+            var driver = await _context.Drivers.Include(d => d.IdTachographNavigation).FirstOrDefaultAsync(d => d.IdAccount == accountId);
             if (driver == null)
             {
                 return NotFound();
@@ -184,11 +255,35 @@ namespace PUNDERO.Controllers
                 account.Image = $"/images/profile_images/{model.FirstName}{model.LastName}.jpg";
             }
 
-            driver.LicenseNumber = model.LicenseNumber;
-            driver.LicenseCategory = model.LicenseCategory;
-            driver.IdTachographNavigation.Label = model.TachographLabel;
-            driver.IdTachographNavigation.IssueDate = model.TachographIssueDate;
-            driver.IdTachographNavigation.ExpiryDate = model.TachographExpiryDate;
+            // Update optional fields
+            if (!string.IsNullOrEmpty(model.LicenseNumber))
+            {
+                driver.LicenseNumber = model.LicenseNumber;
+            }
+
+            if (!string.IsNullOrEmpty(model.LicenseCategory))
+            {
+                driver.LicenseCategory = model.LicenseCategory;
+            }
+
+            if (!string.IsNullOrEmpty(model.TachographLabel))
+            {
+                if (driver.IdTachographNavigation != null)
+                {
+                    driver.IdTachographNavigation.Label = model.TachographLabel;
+                    driver.IdTachographNavigation.IssueDate = model.TachographIssueDate ?? driver.IdTachographNavigation.IssueDate;
+                    driver.IdTachographNavigation.ExpiryDate = model.TachographExpiryDate ?? driver.IdTachographNavigation.ExpiryDate;
+                }
+                else
+                {
+                    driver.IdTachographNavigation = new Tachograph
+                    {
+                        Label = model.TachographLabel,
+                        IssueDate = model.TachographIssueDate ?? DateTime.Now,
+                        ExpiryDate = model.TachographExpiryDate ?? DateTime.Now.AddYears(1) // Default to 1 year if not provided
+                    };
+                }
+            }
 
             _context.Entry(account).State = EntityState.Modified;
             _context.Entry(driver).State = EntityState.Modified;
@@ -196,6 +291,8 @@ namespace PUNDERO.Controllers
 
             return NoContent();
         }
+
+
 
         // DELETE: api/Driver/DeleteDriver/5
         [HttpDelete("{id}")]
