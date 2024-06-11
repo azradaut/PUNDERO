@@ -9,9 +9,9 @@ public partial class Tachograph
 
     public string Label { get; set; } = null!;
 
-    public DateTime IssueDate { get; set; }
+    public DateTime? IssueDate { get; set; }
 
-    public DateTime ExpiryDate { get; set; }
+    public DateTime? ExpiryDate { get; set; }
 
     public int? IdWorkingHours { get; set; }
 

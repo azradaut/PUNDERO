@@ -19,11 +19,5 @@ public partial class Mobile
 
     public string Imei { get; set; } = null!;
 
-    public string? Brand { get; set; }
-
-    public string? Model { get; set; }
-
-    public string? Imei { get; set; }
-
     public virtual ICollection<MobileDriver> MobileDrivers { get; set; } = new List<MobileDriver>();
 }

@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,45 +19,46 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-        // GET: api/Client
+        // GET: api/Client/GetClients
         [HttpGet]
         public IActionResult GetClients()
         {
             var clients = _context.Clients
                 .Include(c => c.IdAccountNavigation)
                 .Include(c => c.Stores)
-                .Select(c => new
+                .Select(c => new ClientViewModel
                 {
-                    c.IdClient,
+                    IdClient = c.IdClient,
+                    IdAccount = c.IdAccount,
                     FirstName = c.IdAccountNavigation.FirstName,
                     LastName = c.IdAccountNavigation.LastName,
                     Email = c.IdAccountNavigation.Email,
-                    Type = "Client",
                     Store = c.Stores.Select(s => s.Name).FirstOrDefault(),
-                    c.IdAccountNavigation.Image
+                    Image = c.IdAccountNavigation.Image
                 })
                 .ToList();
 
             return Ok(clients);
         }
 
-        // GET: api/Client/IdAccount
-        [HttpGet("{IdAccount}")]
-        public IActionResult GetClientByIdAccount(int IdAccount)
+        // GET: api/Client/GetClientByIdAccount/5
+        [HttpGet("{id}")]
+        public IActionResult GetClientByIdAccount(int id)
         {
             var client = _context.Clients
                 .Include(c => c.IdAccountNavigation)
                 .Include(c => c.Stores)
-                .Where(c => c.IdAccount == IdAccount)
-                .Select(c => new
+                .Where(c => c.IdAccount == id)
+                .Select(c => new ClientViewModel
                 {
-                    c.IdClient,
+                    IdClient = c.IdClient,
+                    IdAccount = c.IdAccount,
                     FirstName = c.IdAccountNavigation.FirstName,
                     LastName = c.IdAccountNavigation.LastName,
                     Email = c.IdAccountNavigation.Email,
-                    Type = "Client",
+                    Password = c.IdAccountNavigation.Password,  // Include password
                     Store = c.Stores.Select(s => s.Name).FirstOrDefault(),
-                    c.IdAccountNavigation.Image
+                    Image = c.IdAccountNavigation.Image
                 })
                 .FirstOrDefault();
 
@@ -67,18 +70,13 @@ namespace PUNDERO.Controllers
             return Ok(client);
         }
 
-        // POST: api/Client/AddClient
+
         // POST: api/Client/AddClient
         [HttpPost]
-        public async Task<IActionResult> AddClient([FromBody] ClientViewModel model)
+        public async Task<IActionResult> AddClient([FromForm] ClientViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => e.ErrorMessage)).ToList();
-                foreach (var error in errors)
-                {
-                    Console.WriteLine(error);
-                }
                 return BadRequest(ModelState);
             }
 
@@ -89,7 +87,7 @@ namespace PUNDERO.Controllers
                 Email = model.Email,
                 Password = model.Password,
                 Type = 3, // Client type
-                Image = model.Image // Store base64 string directly
+                Image = model.Image
             };
 
             _context.Accounts.Add(account);
@@ -98,38 +96,109 @@ namespace PUNDERO.Controllers
             var client = new Client
             {
                 IdAccount = account.IdAccount,
-               
             };
 
             _context.Clients.Add(client);
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok(new ClientViewModel
             {
-                client.IdClient,
-                account.FirstName,
-                account.LastName,
-                account.Email,
-                account.Type,
-                account.Image
+                IdClient = client.IdClient,
+                IdAccount = account.IdAccount,
+                FirstName = account.FirstName,
+                LastName = account.LastName,
+                Email = account.Email,
+                Store = model.Store,
+                Image = account.Image
             });
         }
-    
-    // PUT: api/Client/UploadImage
-    [HttpPost("UploadImage")]
-        public async Task<IActionResult> UploadImage()
-        {
-            var httpRequest = HttpContext.Request;
 
-            if (httpRequest.Form.Files.Count == 0)
+        [HttpPut("{accountId}")]
+        public async Task<IActionResult> UpdateClient(int accountId, [FromForm] ClientViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.SelectMany(x => x.Value.Errors.Select(e => new { x.Key, e.ErrorMessage })).ToList();
+                foreach (var error in errors)
+                {
+                    Console.WriteLine($"Key: {error.Key}, Error: {error.ErrorMessage}");
+                }
+                return BadRequest(ModelState);
+            }
+
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.IdAccount == accountId);
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            var account = await _context.Accounts.FindAsync(accountId);
+            if (account == null)
+            {
+                return NotFound();
+            }
+
+            account.FirstName = model.FirstName;
+            account.LastName = model.LastName;
+            account.Email = model.Email;
+
+            // Retain existing password if not provided
+            if (!string.IsNullOrEmpty(model.Password))
+            {
+                account.Password = model.Password;
+            }
+
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
+            {
+                var imagePath = Path.Combine("wwwroot", "images", "profile_images", $"{model.FirstName}{model.LastName}.jpg");
+                using (var stream = new FileStream(imagePath, FileMode.Create))
+                {
+                    await model.ImageFile.CopyToAsync(stream);
+                }
+                account.Image = $"/images/profile_images/{model.FirstName}{model.LastName}.jpg";
+            }
+
+            _context.Entry(account).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
+
+
+        // DELETE: api/Client/DeleteClient/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteClient(int id)
+        {
+            var client = await _context.Clients.FindAsync(id);
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            var account = await _context.Accounts.FindAsync(client.IdAccount);
+            if (account != null)
+            {
+                _context.Accounts.Remove(account);
+            }
+
+            _context.Clients.Remove(client);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // POST: api/Client/UploadImage
+        [HttpPost("UploadImage")]
+        public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string fileName)
+        {
+            if (file == null || file.Length == 0)
             {
                 return BadRequest("No file uploaded.");
             }
 
-            var file = httpRequest.Form.Files[0];
-            var fileName = httpRequest.Form["fileName"].ToString();
-
-            var path = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profile_images", fileName);
 
             using (var stream = new FileStream(path, FileMode.Create))
             {
@@ -138,18 +207,5 @@ namespace PUNDERO.Controllers
 
             return Ok(new { path });
         }
-
-    }
-
-
-
-    public class ClientViewModel
-    {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
-        public string Store { get; set; }
-        public string? Image { get; set; }
     }
 }

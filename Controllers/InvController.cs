@@ -47,7 +47,8 @@ namespace PUNDERO.Controllers
                         i.IdInvoice,
                         i.IssueDate,
                         StoreName = i.IdStoreNavigation.Name,
-                        StatusName = i.IdStatusNavigation.Name
+                        StatusName = i.IdStatusNavigation.Name,
+                        i.Note
                     })
                     .ToListAsync();
 
@@ -73,7 +74,8 @@ namespace PUNDERO.Controllers
                         i.IdInvoice,
                         i.IssueDate,
                         StoreName = i.IdStoreNavigation.Name,
-                        StatusName = i.IdStatusNavigation.Name
+                        StatusName = i.IdStatusNavigation.Name,
+                        i.Note
                     })
                     .ToListAsync();
 
@@ -89,18 +91,40 @@ namespace PUNDERO.Controllers
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingInvoices()
         {
-            var pendingInvoices = await _context.Invoices
-                .Where(i => i.IdStatus == 1) // Assuming status ID 1 is for pending
-                .Include(i => i.IdStoreNavigation)
-                .Include(i => i.IdWarehouseNavigation)
-                .Include(i => i.IdStatusNavigation)
-                .Include(i => i.IdDriverNavigation)
-                .Include(i => i.InvoiceProducts)
-                    .ThenInclude(ip => ip.IdProductNavigation)
-                .ToListAsync();
+            try
+            {
+                var pendingInvoices = await _context.Invoices
+                    .Where(i => i.IdStatus == 1) // Assuming status ID 1 is for pending
+                    .Include(i => i.IdStoreNavigation)
+                    .Include(i => i.IdWarehouseNavigation)
+                    .Include(i => i.IdStatusNavigation)
+                    .Include(i => i.IdDriverNavigation)
+                    .Include(i => i.InvoiceProducts)
+                        .ThenInclude(ip => ip.IdProductNavigation)
+                    .Select(i => new {
+                        i.IdInvoice,
+                        i.IssueDate,
+                        StoreName = i.IdStoreNavigation.Name,
+                        WarehouseName = i.IdWarehouseNavigation.NameWarehouse,
+                        DriverName = i.IdDriverNavigation.IdAccountNavigation.FirstName + " " + i.IdDriverNavigation.IdAccountNavigation.LastName,
+                        Products = i.InvoiceProducts.Select(ip => new {
+                            ip.IdProductNavigation.IdProduct,
+                            ip.IdProductNavigation.NameProduct,
+                            ip.OrderQuantity
+                        }).ToList(),
+                        i.Note
+                    })
+                    .ToListAsync();
 
-            return Ok(pendingInvoices);
+                return Ok(pendingInvoices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching pending invoices.");
+                return StatusCode(500, "Internal server error");
+            }
         }
+
 
         [HttpGet("delivered/{storeName}")]
         public async Task<IActionResult> GetDeliveredInvoicesByStoreName(string storeName)
@@ -127,7 +151,8 @@ namespace PUNDERO.Controllers
                             ip.IdProductNavigation.Price,
                             TotalPrice = ip.OrderQuantity * ip.IdProductNavigation.Price
                         }),
-                        TotalAmount = i.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price)
+                        TotalAmount = i.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price),
+                        i.Note
                     })
                     .ToListAsync();
 
@@ -150,6 +175,21 @@ namespace PUNDERO.Controllers
                     .ThenInclude(d => d.IdAccountNavigation)
                 .Include(i => i.InvoiceProducts)
                     .ThenInclude(ip => ip.IdProductNavigation)
+                .Select(i => new {
+                    i.IdInvoice,
+                    i.IssueDate,
+                    StoreName = i.IdStoreNavigation.Name,
+                    DriverName = i.IdDriverNavigation != null ? $"{i.IdDriverNavigation.IdAccountNavigation.FirstName} {i.IdDriverNavigation.IdAccountNavigation.LastName}" : null,
+                    StatusName = i.IdStatusNavigation.Name,
+                    Products = i.InvoiceProducts.Select(ip => new {
+                        ip.IdProductNavigation.NameProduct,
+                        ip.OrderQuantity,
+                        ip.IdProductNavigation.Price,
+                        TotalPrice = ip.OrderQuantity * ip.IdProductNavigation.Price
+                    }),
+                    TotalAmount = i.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price),
+                    i.Note
+                })
                 .SingleOrDefaultAsync(i => i.IdInvoice == id);
 
             if (invoice == null)
@@ -157,24 +197,7 @@ namespace PUNDERO.Controllers
                 return NotFound();
             }
 
-            var invoiceDetails = new
-            {
-                invoice.IdInvoice,
-                invoice.IssueDate,
-                StoreName = invoice.IdStoreNavigation?.Name,
-                DriverName = invoice.IdDriverNavigation != null ? $"{invoice.IdDriverNavigation.IdAccountNavigation.FirstName} {invoice.IdDriverNavigation.IdAccountNavigation.LastName}" : null,
-                StatusName = invoice.IdStatusNavigation?.Name,
-                Products = invoice.InvoiceProducts.Select(ip => new
-                {
-                    ip.IdProductNavigation.NameProduct,
-                    ip.OrderQuantity,
-                    ip.IdProductNavigation.Price,
-                    TotalPrice = ip.OrderQuantity * ip.IdProductNavigation.Price
-                }),
-                TotalAmount = invoice.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price)
-            };
-
-            return Ok(invoiceDetails);
+            return Ok(invoice);
         }
 
         [HttpGet("deliveredToClient/{storeName}")]
@@ -203,7 +226,8 @@ namespace PUNDERO.Controllers
                             TotalPrice = ip.OrderQuantity * ip.IdProductNavigation.Price
                         }),
                         TotalAmount = i.InvoiceProducts.Sum(ip => ip.OrderQuantity * ip.IdProductNavigation.Price),
-                        StatusName = i.IdStatusNavigation.Name
+                        StatusName = i.IdStatusNavigation.Name,
+                        i.Note
                     })
                     .ToListAsync();
 
@@ -232,7 +256,6 @@ namespace PUNDERO.Controllers
                                        .Include(c => c.IdAccountNavigation)
                                        .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
 
-
             return NoContent();
         }
 
@@ -251,7 +274,6 @@ namespace PUNDERO.Controllers
             var client = await _context.Clients
                                        .Include(c => c.IdAccountNavigation)
                                        .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
-
 
             return NoContent();
         }
@@ -346,7 +368,7 @@ namespace PUNDERO.Controllers
         }
 
         [HttpPut("{id}/approve")]
-        public async Task<IActionResult> ApproveInvoice(int id)
+        public async Task<IActionResult> ApproveInvoice(int id, [FromBody] NoteRequest request)
         {
             try
             {
@@ -361,6 +383,7 @@ namespace PUNDERO.Controllers
                 }
 
                 invoice.IdStatus = 2;
+                invoice.Note = request.Note;
 
                 foreach (var invoiceProduct in invoice.InvoiceProducts)
                 {
@@ -392,33 +415,42 @@ namespace PUNDERO.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "An error occurred while approving the invoice.");
                 return StatusCode(500, "Internal server error. Please try again later.");
             }
         }
 
         [HttpPut("{id}/reject")]
-        public async Task<IActionResult> RejectInvoice(int id)
+        public async Task<IActionResult> RejectInvoice(int id, [FromBody] NoteRequest request)
         {
-            var invoice = await _context.Invoices.FindAsync(id);
-            if (invoice == null)
+            try
             {
-                return NotFound();
+                var invoice = await _context.Invoices.FindAsync(id);
+                if (invoice == null)
+                {
+                    return NotFound();
+                }
+
+                invoice.IdStatus = 3; // Rejected 
+                invoice.Note = request.Note;
+                await _context.SaveChangesAsync();
+
+                var client = await _context.Clients
+                                           .Include(c => c.IdAccountNavigation)
+                                           .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
+                if (client?.IdAccount != null)
+                {
+                    await CreateNotification(client.IdAccount.Value, "Your invoice has been rejected.");
+                }
+
+                return NoContent();
             }
-
-            invoice.IdStatus = 3; // Rejected 
-            await _context.SaveChangesAsync();
-
-            var client = await _context.Clients
-                                       .Include(c => c.IdAccountNavigation)
-                                       .FirstOrDefaultAsync(c => c.IdClient == invoice.IdStoreNavigation.IdClient);
-            if (client?.IdAccount != null)
+            catch (Exception ex)
             {
-                await CreateNotification(client.IdAccount.Value, "Your invoice has been rejected.");
+                _logger.LogError(ex, "An error occurred while rejecting the invoice.");
+                return StatusCode(500, "Internal server error. Please try again later.");
             }
-
-            return NoContent();
         }
-
 
         [HttpGet("intransitToClient/{storeName}")]
         public async Task<IActionResult> GetInTransitInvoicesForClient(string storeName)
@@ -451,10 +483,6 @@ namespace PUNDERO.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
-
-
-
     }
 
     public class CreateInvoiceRequest
@@ -480,7 +508,9 @@ namespace PUNDERO.Controllers
         public int WarehouseId { get; set; }
         public int DriverId { get; set; }
     }
+
+    public class NoteRequest
+    {
+        public string Note { get; set; }
+    }
 }
-
-
-
