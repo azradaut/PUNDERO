@@ -149,67 +149,6 @@ namespace PUNDERO.Controllers
             });
         }
 
-
-        //// POST: api/Driver/AddDriver
-        //[HttpPost]
-        //public async Task<IActionResult> AddDriver([FromForm] DriverViewModel model)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return BadRequest(ModelState);
-        //    }
-
-        //    var account = new Account
-        //    {
-        //        FirstName = model.FirstName,
-        //        LastName = model.LastName,
-        //        Email = model.Email,
-        //        Password = model.Password,
-        //        Type = 2, // Driver type
-        //        Image = model.Image
-        //    };
-
-        //    _context.Accounts.Add(account);
-        //    await _context.SaveChangesAsync();
-
-        //    var tachograph = new Tachograph
-        //    {
-        //        Label = model.TachographLabel,
-        //        IssueDate = model.TachographIssueDate,
-        //        ExpiryDate = model.TachographExpiryDate
-        //    };
-
-        //    _context.Tachographs.Add(tachograph);
-        //    await _context.SaveChangesAsync();
-
-        //    var driver = new Driver
-        //    {
-        //        IdAccount = account.IdAccount,
-        //        LicenseNumber = model.LicenseNumber,
-        //        LicenseCategory = model.LicenseCategory,
-        //        IdTachograph = tachograph.IdTachograph,
-        //        PrivateMobile = 0
-        //    };
-
-        //    _context.Drivers.Add(driver);
-        //    await _context.SaveChangesAsync();
-
-        //    return Ok(new DriverViewModel
-        //    {
-        //        IdDriver = driver.IdDriver,
-        //        IdAccount = account.IdAccount,
-        //        FirstName = account.FirstName,
-        //        LastName = account.LastName,
-        //        Email = account.Email,
-        //        LicenseNumber = driver.LicenseNumber,
-        //        LicenseCategory = driver.LicenseCategory,
-        //        TachographLabel = tachograph.Label,
-        //        TachographIssueDate = tachograph.IssueDate,
-        //        TachographExpiryDate = tachograph.ExpiryDate,
-        //        Image = account.Image
-        //    });
-        //}
-
         [HttpPut("{accountId}")]
         public async Task<IActionResult> UpdateDriver(int accountId, [FromForm] DriverViewModel model)
         {
