@@ -152,7 +152,7 @@ namespace PUNDERO.Controllers
                 return BadRequest(ModelState);
             }
 
-            var driver = await _context.Drivers.FirstOrDefaultAsync(d => d.IdAccount == accountId);
+            var driver = await _context.Drivers.Include(d => d.IdTachographNavigation).FirstOrDefaultAsync(d => d.IdAccount == accountId);
             if (driver == null)
             {
                 return NotFound();
@@ -184,11 +184,35 @@ namespace PUNDERO.Controllers
                 account.Image = $"/images/profile_images/{model.FirstName}{model.LastName}.jpg";
             }
 
-            driver.LicenseNumber = model.LicenseNumber;
-            driver.LicenseCategory = model.LicenseCategory;
-            driver.IdTachographNavigation.Label = model.TachographLabel;
-            driver.IdTachographNavigation.IssueDate = model.TachographIssueDate;
-            driver.IdTachographNavigation.ExpiryDate = model.TachographExpiryDate;
+            // Update optional fields
+            if (!string.IsNullOrEmpty(model.LicenseNumber))
+            {
+                driver.LicenseNumber = model.LicenseNumber;
+            }
+
+            if (!string.IsNullOrEmpty(model.LicenseCategory))
+            {
+                driver.LicenseCategory = model.LicenseCategory;
+            }
+
+            if (!string.IsNullOrEmpty(model.TachographLabel))
+            {
+                if (driver.IdTachographNavigation != null)
+                {
+                    driver.IdTachographNavigation.Label = model.TachographLabel;
+                    driver.IdTachographNavigation.IssueDate = model.TachographIssueDate ?? driver.IdTachographNavigation.IssueDate;
+                    driver.IdTachographNavigation.ExpiryDate = model.TachographExpiryDate ?? driver.IdTachographNavigation.ExpiryDate;
+                }
+                else
+                {
+                    driver.IdTachographNavigation = new Tachograph
+                    {
+                        Label = model.TachographLabel,
+                        IssueDate = model.TachographIssueDate ?? DateTime.Now,
+                        ExpiryDate = model.TachographExpiryDate ?? DateTime.Now.AddYears(1) // Default to 1 year if not provided
+                    };
+                }
+            }
 
             _context.Entry(account).State = EntityState.Modified;
             _context.Entry(driver).State = EntityState.Modified;
@@ -196,6 +220,8 @@ namespace PUNDERO.Controllers
 
             return NoContent();
         }
+
+
 
         // DELETE: api/Driver/DeleteDriver/5
         [HttpDelete("{id}")]
