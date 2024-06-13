@@ -26,14 +26,15 @@ namespace PUNDERO.Controllers
                     .ThenInclude(d => d.IdAccountNavigation)
                 .Include(md => md.IdMobileNavigation)
                 .Include(md => md.IdAssignmentTypeNavigation)
-                .Select(md => new
+                .Select(md => new MobileDriverViewModel
                 {
-                    md.IdMobileDriver,
-                    DriverName = md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName,
-                    PhoneNumber = md.IdMobileNavigation.PhoneNumber,
-                    md.AssignmentStartDate,
-                    md.AssignmentEndDate,
-                    AssignmentType = md.IdAssignmentTypeNavigation.Description
+                    IdMobileDriver = md.IdMobileDriver,
+                    DriverName = md.IdDriverNavigation != null ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName : "Unassigned",
+                    MobilePhoneNumber = md.IdMobileNavigation.PhoneNumber,
+                    AssignmentStartDate = md.AssignmentStartDate,
+                    AssignmentEndDate = md.AssignmentEndDate.HasValue && md.AssignmentEndDate.Value == new DateTime(9999, 12, 31) ? null : md.AssignmentEndDate,
+                    AssignmentType = md.IdAssignmentTypeNavigation.Description,
+                    Note = md.Note
                 })
                 .ToListAsync();
 
@@ -50,24 +51,15 @@ namespace PUNDERO.Controllers
                 .Include(md => md.IdMobileNavigation)
                 .Include(md => md.IdAssignmentTypeNavigation)
                 .Where(md => md.IdMobileDriver == id)
-                .Select(md => new
+                .Select(md => new MobileDriverViewModel
                 {
-                    md.IdMobileDriver,
-                    md.AssignmentStartDate,
-                    md.AssignmentEndDate,
-                    md.IdDriver,
-                    md.IdMobile,
-                    md.IdAssignmentType,
-                    md.Note,
-                    DriverName = md.IdDriverNavigation != null
-                        ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName
-                        : "Unassigned",
-                    PhoneNumber = md.IdMobileNavigation != null
-                        ? md.IdMobileNavigation.PhoneNumber
-                        : 0,
-                    AssignmentType = md.IdAssignmentTypeNavigation != null
-                        ? md.IdAssignmentTypeNavigation.Description
-                        : "Unassigned"
+                    IdMobileDriver = md.IdMobileDriver,
+                    DriverName = md.IdDriverNavigation != null ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName : "Unassigned",
+                    MobilePhoneNumber = md.IdMobileNavigation.PhoneNumber,
+                    AssignmentStartDate = md.AssignmentStartDate,
+                    AssignmentEndDate = md.AssignmentEndDate.HasValue && md.AssignmentEndDate.Value == new DateTime(9999, 12, 31) ? null : md.AssignmentEndDate,
+                    AssignmentType = md.IdAssignmentTypeNavigation.Description,
+                    Note = md.Note
                 })
                 .FirstOrDefaultAsync();
 
@@ -81,26 +73,56 @@ namespace PUNDERO.Controllers
 
         // POST: api/MobileDriver/AddMobileAssignment
         [HttpPost("AddMobileAssignment")]
-        public async Task<IActionResult> AddMobileAssignment([FromBody] MobileDriver mobileDriver)
+        public async Task<IActionResult> AddMobileAssignment([FromBody] MobileDriverViewModel viewModel)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
+            var driver = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .FirstOrDefaultAsync(d => d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName == viewModel.DriverName);
+
+            if (driver == null)
+            {
+                return BadRequest("Driver not found.");
+            }
+
+            var mobile = await _context.Mobiles
+                .FirstOrDefaultAsync(m => m.PhoneNumber == viewModel.MobilePhoneNumber);
+
+            if (mobile == null)
+            {
+                return BadRequest("Mobile not found.");
+            }
+
+            var assignmentType = await _context.AssignmentTypes
+                .FirstOrDefaultAsync(at => at.Description == viewModel.AssignmentType);
+
+            if (assignmentType == null)
+            {
+                return BadRequest("Assignment type not found.");
+            }
+
             var existingAssignment = await _context.MobileDrivers
-                .Where(md => md.IdDriver == mobileDriver.IdDriver && md.IdAssignmentType == 1)
+                .Where(md => md.IdDriver == driver.IdDriver && md.IdAssignmentType == 1)
                 .AnyAsync();
 
-            if (mobileDriver.IdAssignmentType == 1 && existingAssignment)
+            if (assignmentType.IdAssignmentType == 1 && existingAssignment)
             {
                 return BadRequest("Driver already has a permanent mobile assignment.");
             }
 
-            if (mobileDriver.IdAssignmentType == 1 && !mobileDriver.AssignmentEndDate.HasValue)
+            var mobileDriver = new MobileDriver
             {
-                mobileDriver.AssignmentEndDate = new DateTime(1, 1, 1); //0000-00-00 in DateTime
-            }
+                IdDriver = driver.IdDriver,
+                IdMobile = mobile.IdMobile,
+                IdAssignmentType = assignmentType.IdAssignmentType,
+                AssignmentStartDate = viewModel.AssignmentStartDate,
+                AssignmentEndDate = assignmentType.IdAssignmentType == 1 ? new DateTime(9999, 12, 31) : viewModel.AssignmentEndDate,
+                Note = viewModel.Note
+            };
 
             _context.MobileDrivers.Add(mobileDriver);
             await _context.SaveChangesAsync();
@@ -108,14 +130,13 @@ namespace PUNDERO.Controllers
             return CreatedAtAction("GetMobileAssignment", new { id = mobileDriver.IdMobileDriver }, mobileDriver);
         }
 
-
-        // PUT: api/MobileDriver/EditMobileAssignment/{id}
+        // PUT: api/MobileDriver/EditMobileAssignment/{id}]
         [HttpPut("EditMobileAssignment/{id}")]
-        public async Task<IActionResult> EditMobileAssignment(int id, [FromBody] MobileDriver mobileDriver)
+        public async Task<IActionResult> EditMobileAssignment(int id, [FromBody] MobileDriverViewModel viewModel)
         {
-            if (id != mobileDriver.IdMobileDriver)
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Assignment ID mismatch.");
+                return BadRequest(ModelState);
             }
 
             var existingAssignment = await _context.MobileDrivers.FindAsync(id);
@@ -124,12 +145,37 @@ namespace PUNDERO.Controllers
                 return NotFound("Assignment not found.");
             }
 
-            existingAssignment.IdDriver = mobileDriver.IdDriver;
-            existingAssignment.IdMobile = mobileDriver.IdMobile;
-            existingAssignment.IdAssignmentType = mobileDriver.IdAssignmentType;
-            existingAssignment.AssignmentStartDate = mobileDriver.AssignmentStartDate;
-            existingAssignment.AssignmentEndDate = mobileDriver.AssignmentEndDate ?? new DateTime(1, 1, 1); // Default to 0000-00-00 if null
-            existingAssignment.Note = mobileDriver.Note;
+            var driver = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .FirstOrDefaultAsync(d => d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName == viewModel.DriverName);
+
+            if (driver == null)
+            {
+                return BadRequest("Driver not found.");
+            }
+
+            var mobile = await _context.Mobiles
+                .FirstOrDefaultAsync(m => m.PhoneNumber == viewModel.MobilePhoneNumber);
+
+            if (mobile == null)
+            {
+                return BadRequest("Mobile not found.");
+            }
+
+            var assignmentType = await _context.AssignmentTypes
+                .FirstOrDefaultAsync(at => at.Description == viewModel.AssignmentType);
+
+            if (assignmentType == null)
+            {
+                return BadRequest("Assignment type not found.");
+            }
+
+            existingAssignment.IdDriver = driver.IdDriver;
+            existingAssignment.IdMobile = mobile.IdMobile;
+            existingAssignment.IdAssignmentType = assignmentType.IdAssignmentType;
+            existingAssignment.AssignmentStartDate = viewModel.AssignmentStartDate;
+            existingAssignment.AssignmentEndDate = assignmentType.IdAssignmentType == 1 ? new DateTime(9999, 12, 31) : viewModel.AssignmentEndDate;
+            existingAssignment.Note = viewModel.Note;
 
             await _context.SaveChangesAsync();
             return NoContent();

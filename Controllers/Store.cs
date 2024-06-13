@@ -23,16 +23,55 @@ namespace PUNDERO.Controllers
         }
 
         [HttpGet("GetStores")]
-        public async Task<IActionResult> GetStores()
+        public async Task<IActionResult> GetStoresByName()
         {
             var stores = await _context.Stores.Select(s => new { s.IdStore, s.Name }).ToListAsync();
             return Ok(stores);
         }
 
+        // GET: api/Stores
+        [HttpGet]
+        public IActionResult GetStores()
+        {
+            var stores = _context.Stores
+                .Include(s => s.IdClientNavigation)
+                    .ThenInclude(c => c.IdAccountNavigation)
+                .Select(s => new
+                {
+                    s.IdStore,
+                    s.Name,
+                    s.Address,
+                    s.Longitude,
+                    s.Latitude,
+                    ClientName = s.IdClientNavigation != null
+                        ? s.IdClientNavigation.IdAccountNavigation.FirstName + " " + s.IdClientNavigation.IdAccountNavigation.LastName
+                        : "Unassigned client"
+                })
+                .ToList();
+
+            return Ok(stores);
+        }
+
+        // GET: api/Stores/5
         [HttpGet("{id}")]
         public IActionResult GetStore(int id)
         {
-            var store = _context.Stores.FirstOrDefault(s => s.IdStore == id);
+            var store = _context.Stores
+                .Include(s => s.IdClientNavigation)
+                    .ThenInclude(c => c.IdAccountNavigation)
+                .Where(s => s.IdStore == id)
+                .Select(s => new
+                {
+                    s.IdStore,
+                    s.Name,
+                    s.Address,
+                    s.Longitude,
+                    s.Latitude,
+                    ClientName = s.IdClientNavigation != null
+                        ? s.IdClientNavigation.IdAccountNavigation.FirstName + " " + s.IdClientNavigation.IdAccountNavigation.LastName
+                        : "Unassigned client"
+                })
+                .FirstOrDefault();
 
             if (store == null)
             {
@@ -75,52 +114,76 @@ namespace PUNDERO.Controllers
             }
         }
 
+        // POST: api/Stores
         [HttpPost]
-        public IActionResult PostStore([FromBody] Store store)
+        public async Task<IActionResult> AddStore([FromBody] Store model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+
+            var store = new Store
+            {
+                Name = model.Name,
+                Address = model.Address,
+                Longitude = model.Longitude,
+                Latitude = model.Latitude,
+                Qr = "1"
+            };
 
             _context.Stores.Add(store);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            return CreatedAtRoute("GetStore", new { id = store.IdStore }, store);
+            return CreatedAtAction(nameof(GetStore), new
+            {
+                id = store.IdStore
+            }, store);
         }
 
+
+        // PUT: api/Stores/5
         [HttpPut("{id}")]
-        public IActionResult PutStore(int id, [FromBody] Store store)
+        public async Task<IActionResult> UpdateStore(int id, [FromBody] Store model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            if (id != store.IdStore)
+            var store = await _context.Stores.FindAsync(id);
+            if (store == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
+            store.Name = model.Name;
+            store.Address = model.Address;
+            store.Longitude = model.Longitude;
+            store.Latitude = model.Latitude;
+            store.IdClient = model.IdClient;
+
             _context.Entry(store).State = EntityState.Modified;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
+        // DELETE: api/Stores/5
         [HttpDelete("{id}")]
-        public IActionResult DeleteStore(int id)
+        public async Task<IActionResult> DeleteStore(int id)
         {
-            var store = _context.Stores.FirstOrDefault(s => s.IdStore == id);
+            var store = await _context.Stores.FindAsync(id);
             if (store == null)
             {
                 return NotFound();
             }
 
             _context.Stores.Remove(store);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return Ok(store);
         }
     }
 }
+

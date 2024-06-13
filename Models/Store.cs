@@ -15,7 +15,7 @@ public partial class Store
 
     public double Latitude { get; set; }
 
-    public string Qr { get; set; } = null!;
+    public string? Qr { get; set; } = null!;
 
     public int? IdClient { get; set; }
 
