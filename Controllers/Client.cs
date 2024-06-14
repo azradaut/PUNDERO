@@ -71,13 +71,23 @@ namespace PUNDERO.Controllers
         }
 
 
-        // POST: api/Client/AddClient
         [HttpPost]
         public async Task<IActionResult> AddClient([FromForm] ClientViewModel model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            string imagePath = null;
+
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
+            {
+                imagePath = Path.Combine("wwwroot", "images", "profile_images", $"{model.FirstName}{model.LastName}.jpg");
+                using (var stream = new FileStream(imagePath, FileMode.Create))
+                {
+                    await model.ImageFile.CopyToAsync(stream);
+                }
             }
 
             var account = new Account
@@ -87,7 +97,7 @@ namespace PUNDERO.Controllers
                 Email = model.Email,
                 Password = model.Password,
                 Type = 3, // Client type
-                Image = model.Image
+                Image = imagePath != null ? $"/images/profile_images/{model.FirstName}{model.LastName}.jpg" : null
             };
 
             _context.Accounts.Add(account);
@@ -108,10 +118,13 @@ namespace PUNDERO.Controllers
                 FirstName = account.FirstName,
                 LastName = account.LastName,
                 Email = account.Email,
-                Store = model.Store,
                 Image = account.Image
             });
         }
+
+
+
+
 
         [HttpPut("{accountId}")]
         public async Task<IActionResult> UpdateClient(int accountId, [FromForm] ClientViewModel model)
@@ -142,7 +155,7 @@ namespace PUNDERO.Controllers
             account.LastName = model.LastName;
             account.Email = model.Email;
 
-            // Retain existing password if not provided
+            // da se ne promijeni password
             if (!string.IsNullOrEmpty(model.Password))
             {
                 account.Password = model.Password;

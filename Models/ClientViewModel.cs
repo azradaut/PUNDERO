@@ -7,6 +7,8 @@ namespace PUNDERO.Models
     {
         public int? IdClient { get; set; }
         public int? IdAccount { get; set; }
+        public int? IdStore { get; set; }
+
         [Required]
         public string FirstName { get; set; }
         [Required]
@@ -15,7 +17,7 @@ namespace PUNDERO.Models
         public string Email { get; set; }
         [Required]
         public string Password { get; set; }
-        public string Store { get; set; }
+        public string? Store { get; set; }
         public string? Image { get; set; }
         public IFormFile? ImageFile { get; set; }
     }

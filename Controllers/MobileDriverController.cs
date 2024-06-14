@@ -243,5 +243,30 @@ namespace PUNDERO.Controllers
 
             return Ok(drivers);
         }
+
+        [HttpGet("GetDriverAndAssignmentType/{phoneNumber}")]
+        public async Task<IActionResult> GetDriverAndAssignmentType(int phoneNumber)
+        {
+            var assignment = await _context.MobileDrivers
+                .Include(md => md.IdDriverNavigation)
+                    .ThenInclude(d => d.IdAccountNavigation)
+                .Include(md => md.IdAssignmentTypeNavigation)
+                .Include(md => md.IdMobileNavigation) 
+                .Where(md => md.IdMobileNavigation.PhoneNumber == phoneNumber)
+                .Select(md => new
+                {
+                    DriverName = md.IdDriverNavigation != null ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName : "No Driver",
+                    AssignmentType = md.IdAssignmentTypeNavigation.Description
+                })
+                .FirstOrDefaultAsync();
+
+            if (assignment == null)
+            {
+                return NotFound("No assignment found for the given phone number.");
+            }
+
+            return Ok(assignment);
+        }
+
     }
 }
