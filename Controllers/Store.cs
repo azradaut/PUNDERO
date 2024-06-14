@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -31,47 +29,49 @@ namespace PUNDERO.Controllers
 
         // GET: api/Stores
         [HttpGet]
-        public IActionResult GetStores()
+        public async Task<IActionResult> GetStores()
         {
-            var stores = _context.Stores
+            var stores = await _context.Stores
                 .Include(s => s.IdClientNavigation)
                     .ThenInclude(c => c.IdAccountNavigation)
-                .Select(s => new
+                .Select(s => new StoreViewModel
                 {
-                    s.IdStore,
-                    s.Name,
-                    s.Address,
-                    s.Longitude,
-                    s.Latitude,
+                    IdStore = s.IdStore,
+                    Name = s.Name,
+                    Address = s.Address,
+                    Longitude = s.Longitude,
+                    Latitude = s.Latitude,
                     ClientName = s.IdClientNavigation != null
                         ? s.IdClientNavigation.IdAccountNavigation.FirstName + " " + s.IdClientNavigation.IdAccountNavigation.LastName
-                        : "Unassigned client"
+                        : "Unassigned Client",
+                    Qr = s.Qr
                 })
-                .ToList();
+                .ToListAsync();
 
             return Ok(stores);
         }
 
         // GET: api/Stores/5
         [HttpGet("{id}")]
-        public IActionResult GetStore(int id)
+        public async Task<IActionResult> GetStore(int id)
         {
-            var store = _context.Stores
+            var store = await _context.Stores
                 .Include(s => s.IdClientNavigation)
                     .ThenInclude(c => c.IdAccountNavigation)
                 .Where(s => s.IdStore == id)
-                .Select(s => new
+                .Select(s => new StoreViewModel
                 {
-                    s.IdStore,
-                    s.Name,
-                    s.Address,
-                    s.Longitude,
-                    s.Latitude,
+                    IdStore = s.IdStore,
+                    Name = s.Name,
+                    Address = s.Address,
+                    Longitude = s.Longitude,
+                    Latitude = s.Latitude,
                     ClientName = s.IdClientNavigation != null
                         ? s.IdClientNavigation.IdAccountNavigation.FirstName + " " + s.IdClientNavigation.IdAccountNavigation.LastName
-                        : "Unassigned client"
+                        : "Unassigned Client",
+                    Qr = s.Qr
                 })
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
 
             if (store == null)
             {
@@ -81,46 +81,33 @@ namespace PUNDERO.Controllers
             return Ok(store);
         }
 
-        [HttpGet("getStoreByName/{storeName}")]
-        public async Task<IActionResult> GetStoreByName(string storeName)
-        {
-            try
-            {
-                var store = await _context.Stores
-                    .Where(s => s.Name == storeName)
-                    .Select(s => new {
-                        IdStore = s.IdStore,
-                        Name = s.Name,
-                        Address = s.Address,
-                        Location = new
-                        {
-                            Latitude = s.Latitude,
-                            Longitude = s.Longitude
-                        }
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (store == null)
-                {
-                    return NotFound("Store not found");
-                }
-
-                return Ok(store);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while fetching the store details.");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
         // POST: api/Stores
         [HttpPost]
-        public async Task<IActionResult> AddStore([FromBody] Store model)
+        public async Task<IActionResult> AddStore([FromBody] StoreViewModel model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            Client? client = null;
+            if (!string.IsNullOrEmpty(model.ClientName))
+            {
+                var clientNameParts = model.ClientName.Split(' ');
+                if (clientNameParts.Length >= 2)
+                {
+                    var firstName = clientNameParts[0];
+                    var lastName = clientNameParts[1];
+                    client = await _context.Clients
+                        .Include(c => c.IdAccountNavigation)
+                        .FirstOrDefaultAsync(c => c.IdAccountNavigation.FirstName == firstName
+                                                  && c.IdAccountNavigation.LastName == lastName);
+                }
+            }
+
+            if (client == null && !string.IsNullOrEmpty(model.ClientName))
+            {
+                return BadRequest("Client not found.");
             }
 
             var store = new Store
@@ -129,22 +116,19 @@ namespace PUNDERO.Controllers
                 Address = model.Address,
                 Longitude = model.Longitude,
                 Latitude = model.Latitude,
+                IdClient = client?.IdClient,
                 Qr = "1"
             };
 
             _context.Stores.Add(store);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetStore), new
-            {
-                id = store.IdStore
-            }, store);
+            return CreatedAtAction(nameof(GetStore), new { id = store.IdStore }, store);
         }
-
 
         // PUT: api/Stores/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateStore(int id, [FromBody] Store model)
+        public async Task<IActionResult> UpdateStore(int id, [FromBody] StoreViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -157,11 +141,31 @@ namespace PUNDERO.Controllers
                 return NotFound();
             }
 
+            Client? client = null;
+            if (!string.IsNullOrEmpty(model.ClientName))
+            {
+                var clientNameParts = model.ClientName.Split(' ');
+                if (clientNameParts.Length >= 2)
+                {
+                    var firstName = clientNameParts[0];
+                    var lastName = clientNameParts[1];
+                    client = await _context.Clients
+                        .Include(c => c.IdAccountNavigation)
+                        .FirstOrDefaultAsync(c => c.IdAccountNavigation.FirstName == firstName
+                                                  && c.IdAccountNavigation.LastName == lastName);
+                }
+            }
+
+            if (client == null && !string.IsNullOrEmpty(model.ClientName))
+            {
+                return BadRequest("Client not found.");
+            }
+
             store.Name = model.Name;
             store.Address = model.Address;
             store.Longitude = model.Longitude;
             store.Latitude = model.Latitude;
-            store.IdClient = model.IdClient;
+            store.IdClient = client?.IdClient;
 
             _context.Entry(store).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -186,4 +190,3 @@ namespace PUNDERO.Controllers
         }
     }
 }
-
