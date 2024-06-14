@@ -66,10 +66,10 @@ namespace PUNDERO.Controllers
                 FirstName = account.FirstName,
                 LastName = account.LastName,
                 StoreName = storeName,
-                ClientId = clientId  // Include clientId in the response
+                ClientId = clientId,
+                IdAccount = account.IdAccount // Add IdAccount to the response
             });
         }
-
 
         public class LoginRequest
         {

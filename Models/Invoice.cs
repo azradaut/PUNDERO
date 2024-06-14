@@ -18,6 +18,7 @@ public partial class Invoice
     public int? IdDriver { get; set; }
 
     public string? Note { get; set; }
+    public string? NoteClient { get; set; }
 
     public virtual Driver? IdDriverNavigation { get; set; }
 
