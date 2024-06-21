@@ -13,21 +13,22 @@ public class SalesData
     public int ID_STORE { get; set; }
 }
 
-public class SalesDataRepository
-{
-    private readonly string _connectionString;
 
-    
-public SalesDataRepository(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
 
-    public List<SalesData> GetSalesData()
+    public class SalesDataRepository
     {
-        using (var connection = new SqlConnection(_connectionString))
+        private readonly string _connectionString;
+
+        public SalesDataRepository(string connectionString)
         {
-            var sql = @"
+            _connectionString = connectionString;
+        }
+
+        public List<SalesData> GetSalesData(int? productId = null, int? storeId = null)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var sql = @"
             SELECT 
                 i.ID_INVOICE,
                 i.ISSUE_DATE,
@@ -37,10 +38,16 @@ public SalesDataRepository(string connectionString)
             FROM 
                 INVOICE i
             JOIN 
-                INVOICE_PRODUCT ip ON i.ID_INVOICE = ip.ID_INVOICE";
+                INVOICE_PRODUCT ip ON i.ID_INVOICE = ip.ID_INVOICE
+            WHERE 
+                (@ProductId IS NULL OR ip.ID_PRODUCT = @ProductId) AND
+                (@StoreId IS NULL OR i.ID_STORE = @StoreId)";
 
-            var data = connection.Query<SalesData>(sql).ToList();
-            return data;
+                var data = connection.Query<SalesData>(sql, new { ProductId = productId, StoreId = storeId }).ToList();
+                return data;
+            }
         }
-    }
+    
+
+
 }

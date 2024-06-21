@@ -1,8 +1,4 @@
-﻿using PUNDERO.DataAccess;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace PUNDERO.Services
+﻿namespace PUNDERO.Services
 {
     public class SalesDataService
     {
@@ -13,15 +9,15 @@ namespace PUNDERO.Services
             _salesDataRepository = salesDataRepository;
         }
 
-        public List<ProductSalesData> GetProductSalesData()
+        public List<ProductSalesData> GetProductSalesData(int? productId = null, int? storeId = null)
         {
-            var salesData = _salesDataRepository.GetSalesData();
+            var salesData = _salesDataRepository.GetSalesData(productId, storeId);
 
             return salesData
-                .GroupBy(sd => sd.ISSUE_DATE.Date)
+                .GroupBy(sd => new { sd.ISSUE_DATE.Date, sd.ID_PRODUCT, sd.ID_STORE })
                 .Select(g => new ProductSalesData
                 {
-                    IssueDate = g.Key,
+                    IssueDate = g.Key.Date,
                     OrderQuantity = g.Sum(sd => sd.ORDER_QUANTITY)
                 }).ToList();
         }
