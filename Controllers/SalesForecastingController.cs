@@ -26,7 +26,7 @@ namespace PUNDERO.Controllers
         }
 
         [HttpGet("forecast")]
-        public ActionResult<List<float>> Forecast(int horizon = 4)
+        public ActionResult<List<float>> Forecast(int horizon = 10)
         {
             var forecast = _salesForecasting.Forecast(horizon);
             return Ok(forecast);
