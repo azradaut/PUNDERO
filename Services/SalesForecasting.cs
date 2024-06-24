@@ -15,7 +15,7 @@ namespace PUNDERO.Services
 
         public void TrainModel(List<ProductSalesData> salesData)
         {
-            if (salesData.Count <= 2)
+            if (salesData.Count <= 3)
             {
                 throw new ArgumentException("The series length should be greater than the window size (5).");
             }
@@ -23,7 +23,7 @@ namespace PUNDERO.Services
             var data = _mlContext.Data.LoadFromEnumerable(salesData);
 
             var windowSize = Math.Min(3, salesData.Count - 1);
-            var horizon = Math.Min(5, salesData.Count - windowSize);
+            var horizon = Math.Min(10, salesData.Count - windowSize);
 
             var pipeline = _mlContext.Forecasting.ForecastBySsa(
                 outputColumnName: nameof(SalesForecastingPrediction.ForecastedOrderQuantity),
