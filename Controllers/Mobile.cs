@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PUNDERO.Helper;
 using PUNDERO.Models;
 
 namespace PUNDERO.Controllers
@@ -8,17 +9,21 @@ namespace PUNDERO.Controllers
     [ApiController]
     public class MobileController : ControllerBase
     {
-        private readonly PunderoContext _context;
-
-        public MobileController(PunderoContext context)
+        PunderoContext _context = new PunderoContext();
+        private readonly MyAuthService _authService;
+        public MobileController(MyAuthService authService)
         {
-            _context = context;
+            _authService = authService;
         }
 
         // GET: api/Mobile
         [HttpGet]
         public async Task<IActionResult> GetMobiles()
         {
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
             var mobiles = await _context.Mobiles.ToListAsync();
             return Ok(mobiles);
         }
@@ -45,6 +50,10 @@ namespace PUNDERO.Controllers
             {
                 return BadRequest(ModelState);
             }
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
 
             _context.Mobiles.Add(mobile);
             _context.SaveChanges();
@@ -66,6 +75,11 @@ namespace PUNDERO.Controllers
                 return BadRequest();
             }
 
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
+
             _context.Entry(mobile).State = EntityState.Modified;
             _context.SaveChanges();
 
@@ -76,11 +90,16 @@ namespace PUNDERO.Controllers
         [HttpDelete("{id}")]
         public IActionResult DeleteMobile(int id)
         {
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
             var mobile = _context.Mobiles.Find(id);
             if (mobile == null)
             {
                 return NotFound();
             }
+
 
             _context.Mobiles.Remove(mobile);
             _context.SaveChanges();

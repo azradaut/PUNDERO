@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PUNDERO.Helper;
 using PUNDERO.Models;
 using System.Linq;
 
@@ -9,17 +10,22 @@ namespace PUNDERO.Controllers
     [ApiController]
     public class VehicleController : ControllerBase
     {
-        private readonly PunderoContext _context;
-
-        public VehicleController(PunderoContext context)
+        PunderoContext _context = new PunderoContext();
+        private readonly MyAuthService _authService;
+        public VehicleController(MyAuthService authService)
         {
-            _context = context;
+            _authService = authService;
         }
+
 
         // GET: api/Vehicles
         [HttpGet]
         public IActionResult GetVehicles()
         {
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
             var vehicles = _context.Vehicles
                 .Include(v => v.VehicleDrivers)
                     .ThenInclude(vd => vd.IdDriverNavigation)
@@ -111,6 +117,10 @@ namespace PUNDERO.Controllers
             {
                 return BadRequest(ModelState);
             }
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
 
             _context.Vehicles.Add(vehicle);
             _context.SaveChanges();
@@ -132,6 +142,11 @@ namespace PUNDERO.Controllers
                 return BadRequest();
             }
 
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
+
             _context.Entry(vehicle).State = EntityState.Modified;
             _context.SaveChanges();
 
@@ -144,6 +159,10 @@ namespace PUNDERO.Controllers
         [HttpDelete("DeleteVehicle/{id}")]
         public IActionResult DeleteVehicle(int id)
         {
+            if (_authService.UserType != 1)
+            {
+                return Unauthorized("You are not authorized to access this resource.");
+            }
             var vehicle = _context.Vehicles.FirstOrDefault(i => i.IdVehicle == id);
             if (vehicle == null)
             {
