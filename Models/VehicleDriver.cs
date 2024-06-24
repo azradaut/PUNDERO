@@ -16,6 +16,7 @@ public partial class VehicleDriver
     public DateTime? AssignmentEndDate { get; set; }
 
     public int? IdAssignmentType { get; set; }
+
     public string? Note { get; set; }
 
     public virtual AssignmentType? IdAssignmentTypeNavigation { get; set; }

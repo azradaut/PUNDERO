@@ -19,6 +19,13 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
+        [HttpGet("GetProducts")]
+        public async Task<IActionResult> GetProductsByName()
+        {
+            var products = await _context.Products.Select(p => new { p.IdProduct, p.NameProduct }).ToListAsync();
+            return Ok(products);
+        }
+
         // GET: api/Product
         [HttpGet]
         public IActionResult GetProducts()

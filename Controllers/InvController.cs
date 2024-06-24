@@ -94,6 +94,7 @@ namespace PUNDERO.Controllers
                 var invoices = await _context.Invoices
                     .Include(i => i.IdStoreNavigation)
                     .Include(i => i.IdStatusNavigation)
+                    .OrderByDescending(i => i.IdInvoice)
                     .Select(i => new {
                         i.IdInvoice,
                         i.IssueDate,
@@ -121,6 +122,7 @@ namespace PUNDERO.Controllers
                     .Include(i => i.IdStoreNavigation)
                     .Include(i => i.IdStatusNavigation)
                     .Where(i => i.IdStoreNavigation.Name == storeName)
+                    .OrderByDescending(i => i.IdInvoice)
                     .Select(i => new {
                         i.IdInvoice,
                         i.IssueDate,
@@ -152,6 +154,7 @@ namespace PUNDERO.Controllers
                     .Include(i => i.IdDriverNavigation)
                     .Include(i => i.InvoiceProducts)
                         .ThenInclude(ip => ip.IdProductNavigation)
+                    .OrderByDescending(i => i.IdInvoice)
                     .Select(i => new {
                         i.IdInvoice,
                         i.IssueDate,
@@ -189,6 +192,7 @@ namespace PUNDERO.Controllers
                     .Include(i => i.InvoiceProducts)
                         .ThenInclude(ip => ip.IdProductNavigation)
                     .Where(i => i.IdStoreNavigation.Name == storeName && i.IdStatus == 5) // Assuming status ID 5 is for delivered
+                    .OrderByDescending(i => i.IdInvoice)
                     .Select(i => new {
                         i.IdInvoice,
                         i.IssueDate,
@@ -225,7 +229,8 @@ namespace PUNDERO.Controllers
                     .ThenInclude(d => d.IdAccountNavigation)
                 .Include(i => i.InvoiceProducts)
                     .ThenInclude(ip => ip.IdProductNavigation)
-                .Select(i => new {
+                .OrderByDescending(i => i.IdInvoice)
+                    .Select(i => new {
                     i.IdInvoice,
                     i.IssueDate,
                     StoreName = i.IdStoreNavigation.Name,
@@ -262,7 +267,8 @@ namespace PUNDERO.Controllers
                         .ThenInclude(d => d.IdAccountNavigation)
                     .Include(i => i.InvoiceProducts)
                         .ThenInclude(ip => ip.IdProductNavigation)
-                    .Select(i => new
+                    .OrderByDescending(i => i.IdInvoice)
+                        .Select(i => new
                     {
                         i.IdInvoice,
                         i.IssueDate,
