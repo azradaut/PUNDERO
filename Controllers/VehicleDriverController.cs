@@ -17,92 +17,256 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-        [HttpGet("GetAssignments")]
-        public async Task<IActionResult> GetAssignments()
+        // GET: api/VehicleDriver/GetVehicleAssignments
+        [HttpGet("GetVehicleAssignments")]
+        public async Task<IActionResult> GetVehicleAssignments()
         {
             var assignments = await _context.VehicleDrivers
                 .Include(vd => vd.IdDriverNavigation)
-                .ThenInclude(d => d.IdAccountNavigation)
+                    .ThenInclude(d => d.IdAccountNavigation)
                 .Include(vd => vd.IdVehicleNavigation)
                 .Include(vd => vd.IdAssignmentTypeNavigation)
-                .Select(vd => new {
-                    vd.IdVehicleDriver,
-                    DriverName = vd.IdDriverNavigation.IdAccountNavigation.FirstName + " " + vd.IdDriverNavigation.IdAccountNavigation.LastName,
+                .Select(vd => new VehicleDriverViewModel
+                {
+                    IdVehicleDriver = vd.IdVehicleDriver,
+                    DriverName = vd.IdDriverNavigation != null ? vd.IdDriverNavigation.IdAccountNavigation.FirstName + " " + vd.IdDriverNavigation.IdAccountNavigation.LastName : "Unassigned",
                     VehicleRegistration = vd.IdVehicleNavigation.Registration,
-                    vd.AssignmentStartDate,
-                    vd.AssignmentEndDate,
-                    AssignmentType = vd.IdAssignmentTypeNavigation.Description
+                    AssignmentStartDate = vd.AssignmentStartDate,
+                    AssignmentEndDate = vd.AssignmentEndDate.HasValue && vd.AssignmentEndDate.Value == new DateTime(9999, 12, 31) ? null : vd.AssignmentEndDate,
+                    AssignmentType = vd.IdAssignmentTypeNavigation.Description,
+                    Note = vd.Note
                 })
                 .ToListAsync();
+
             return Ok(assignments);
         }
 
-        [HttpPost("AddAssignment")]
-        public async Task<IActionResult> AddAssignment([FromBody] VehicleDriverViewModel vehicleDriverVM)
+        // GET: api/VehicleDriver/GetVehicleAssignment/{id}
+        [HttpGet("GetVehicleAssignment/{id}")]
+        public async Task<IActionResult> GetVehicleAssignment(int id)
         {
-            var driver = await _context.Drivers.Include(d => d.IdAccountNavigation).FirstOrDefaultAsync(d => d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName == vehicleDriverVM.DriverName);
-            var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.Registration == vehicleDriverVM.VehicleRegistration);
-            var assignmentType = await _context.AssignmentTypes.FirstOrDefaultAsync(at => at.Description == vehicleDriverVM.AssignmentType);
+            var assignment = await _context.VehicleDrivers
+                .Include(vd => vd.IdDriverNavigation)
+                    .ThenInclude(d => d.IdAccountNavigation)
+                .Include(vd => vd.IdVehicleNavigation)
+                .Include(vd => vd.IdAssignmentTypeNavigation)
+                .Where(vd => vd.IdVehicleDriver == id)
+                .Select(vd => new VehicleDriverViewModel
+                {
+                    IdVehicleDriver = vd.IdVehicleDriver,
+                    DriverName = vd.IdDriverNavigation != null ? vd.IdDriverNavigation.IdAccountNavigation.FirstName + " " + vd.IdDriverNavigation.IdAccountNavigation.LastName : "Unassigned",
+                    VehicleRegistration = vd.IdVehicleNavigation.Registration,
+                    AssignmentStartDate = vd.AssignmentStartDate,
+                    AssignmentEndDate = vd.AssignmentEndDate.HasValue && vd.AssignmentEndDate.Value == new DateTime(9999, 12, 31) ? null : vd.AssignmentEndDate,
+                    AssignmentType = vd.IdAssignmentTypeNavigation.Description,
+                    Note = vd.Note
+                })
+                .FirstOrDefaultAsync();
 
-            if (driver == null || vehicle == null || assignmentType == null)
+            if (assignment == null)
             {
-                return BadRequest("Invalid driver, vehicle, or assignment type.");
+                return NotFound();
+            }
+
+            return Ok(assignment);
+        }
+
+        // POST: api/VehicleDriver/AddVehicleAssignment
+        [HttpPost("AddVehicleAssignment")]
+        public async Task<IActionResult> AddVehicleAssignment([FromBody] VehicleDriverViewModel viewModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var driver = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .FirstOrDefaultAsync(d => d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName == viewModel.DriverName);
+
+            if (driver == null)
+            {
+                return BadRequest("Driver not found.");
+            }
+
+            var vehicle = await _context.Vehicles
+                .FirstOrDefaultAsync(v => v.Registration == viewModel.VehicleRegistration);
+
+            if (vehicle == null)
+            {
+                return BadRequest("Vehicle not found.");
+            }
+
+            var assignmentType = await _context.AssignmentTypes
+                .FirstOrDefaultAsync(at => at.Description == viewModel.AssignmentType);
+
+            if (assignmentType == null)
+            {
+                return BadRequest("Assignment type not found.");
+            }
+
+            var existingAssignment = await _context.VehicleDrivers
+                .Where(vd => vd.IdDriver == driver.IdDriver && vd.IdAssignmentType == 1)
+                .AnyAsync();
+
+            if (assignmentType.IdAssignmentType == 1 && existingAssignment)
+            {
+                return BadRequest("Driver already has a permanent vehicle assignment.");
             }
 
             var vehicleDriver = new VehicleDriver
             {
                 IdDriver = driver.IdDriver,
                 IdVehicle = vehicle.IdVehicle,
-                AssignmentStartDate = vehicleDriverVM.AssignmentStartDate,
-                AssignmentEndDate = vehicleDriverVM.AssignmentEndDate,
-                IdAssignmentType = assignmentType.IdAssignmentType
+                IdAssignmentType = assignmentType.IdAssignmentType,
+                AssignmentStartDate = viewModel.AssignmentStartDate,
+                AssignmentEndDate = assignmentType.IdAssignmentType == 1 ? new DateTime(9999, 12, 31) : viewModel.AssignmentEndDate,
+                Note = viewModel.Note
             };
 
             _context.VehicleDrivers.Add(vehicleDriver);
             await _context.SaveChangesAsync();
-            return Ok();
+
+            return CreatedAtAction("GetVehicleAssignment", new { id = vehicleDriver.IdVehicleDriver }, vehicleDriver);
         }
 
-        [HttpPut("EditAssignment/{id}")]
-        public async Task<IActionResult> EditAssignment(int id, [FromBody] VehicleDriverViewModel vehicleDriverVM)
+        // PUT: api/VehicleDriver/EditVehicleAssignment/{id}]
+        [HttpPut("EditVehicleAssignment/{id}")]
+        public async Task<IActionResult> EditVehicleAssignment(int id, [FromBody] VehicleDriverViewModel viewModel)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var existingAssignment = await _context.VehicleDrivers.FindAsync(id);
             if (existingAssignment == null)
             {
-                return NotFound();
+                return NotFound("Assignment not found.");
             }
 
-            var driver = await _context.Drivers.Include(d => d.IdAccountNavigation).FirstOrDefaultAsync(d => d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName == vehicleDriverVM.DriverName);
-            var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.Registration == vehicleDriverVM.VehicleRegistration);
-            var assignmentType = await _context.AssignmentTypes.FirstOrDefaultAsync(at => at.Description == vehicleDriverVM.AssignmentType);
+            var driver = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .FirstOrDefaultAsync(d => d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName == viewModel.DriverName);
 
-            if (driver == null || vehicle == null || assignmentType == null)
+            if (driver == null)
             {
-                return BadRequest("Invalid driver, vehicle, or assignment type.");
+                return BadRequest("Driver not found.");
+            }
+
+            var vehicle = await _context.Vehicles
+                .FirstOrDefaultAsync(v => v.Registration == viewModel.VehicleRegistration);
+
+            if (vehicle == null)
+            {
+                return BadRequest("Vehicle not found.");
+            }
+
+            var assignmentType = await _context.AssignmentTypes
+                .FirstOrDefaultAsync(at => at.Description == viewModel.AssignmentType);
+
+            if (assignmentType == null)
+            {
+                return BadRequest("Assignment type not found.");
             }
 
             existingAssignment.IdDriver = driver.IdDriver;
             existingAssignment.IdVehicle = vehicle.IdVehicle;
-            existingAssignment.AssignmentStartDate = vehicleDriverVM.AssignmentStartDate;
-            existingAssignment.AssignmentEndDate = vehicleDriverVM.AssignmentEndDate;
             existingAssignment.IdAssignmentType = assignmentType.IdAssignmentType;
+            existingAssignment.AssignmentStartDate = viewModel.AssignmentStartDate;
+            existingAssignment.AssignmentEndDate = assignmentType.IdAssignmentType == 1 ? new DateTime(9999, 12, 31) : viewModel.AssignmentEndDate;
+            existingAssignment.Note = viewModel.Note;
 
             await _context.SaveChangesAsync();
-            return Ok();
+            return NoContent();
         }
 
-        [HttpDelete("DeleteAssignment/{id}")]
-        public async Task<IActionResult> DeleteAssignment(int id)
+        // DELETE: api/VehicleDriver/DeleteVehicleAssignment/{id}
+        [HttpDelete("DeleteVehicleAssignment/{id}")]
+        public async Task<IActionResult> DeleteVehicleAssignment(int id)
         {
-            var existingAssignment = await _context.VehicleDrivers.FindAsync(id);
-            if (existingAssignment == null)
+            var vehicleDriver = await _context.VehicleDrivers.FindAsync(id);
+            if (vehicleDriver == null)
             {
-                return NotFound();
+                return NotFound("Assignment not found.");
             }
 
-            _context.VehicleDrivers.Remove(existingAssignment);
+            _context.VehicleDrivers.Remove(vehicleDriver);
             await _context.SaveChangesAsync();
-            return Ok();
+            return NoContent();
         }
+
+        // GET: api/VehicleDriver/GetUnassignedVehicles
+        [HttpGet("GetUnassignedVehicles")]
+        public async Task<IActionResult> GetUnassignedVehicles()
+        {
+            var vehicles = await _context.Vehicles
+                .Where(v => !v.VehicleDrivers.Any())
+                .Select(v => new
+                {
+                    v.IdVehicle,
+                    v.Registration
+                })
+                .ToListAsync();
+
+            return Ok(vehicles);
+        }
+
+        // GET: api/VehicleDriver/GetAssignmentTypes
+        [HttpGet("GetAssignmentTypes")]
+        public async Task<IActionResult> GetAssignmentTypes()
+        {
+            var assignmentTypes = await _context.AssignmentTypes
+                .Select(at => new
+                {
+                    at.IdAssignmentType,
+                    at.Description
+                })
+                .ToListAsync();
+
+            return Ok(assignmentTypes);
+        }
+
+        // GET: api/VehicleDriver/GetDriversWithName
+        [HttpGet("GetDriversWithName")]
+        public async Task<IActionResult> GetDriversWithName()
+        {
+            var drivers = await _context.Drivers
+                .Include(d => d.IdAccountNavigation)
+                .Select(d => new
+                {
+                    d.IdDriver,
+                    FullName = d.IdAccountNavigation.FirstName + " " + d.IdAccountNavigation.LastName,
+                    HasPermanentVehicle = d.VehicleDrivers.Any(vd => vd.IdAssignmentType == 1)
+                })
+                .ToListAsync();
+
+            return Ok(drivers);
+        }
+
+        [HttpGet("GetDriverAndAssignmentType/{registration}")]
+        public async Task<IActionResult> GetDriverAndAssignmentType(string registration)
+        {
+            var assignment = await _context.VehicleDrivers
+                .Include(vd => vd.IdDriverNavigation)
+                    .ThenInclude(d => d.IdAccountNavigation)
+                .Include(vd => vd.IdAssignmentTypeNavigation)
+                .Include(vd => vd.IdVehicleNavigation)
+                .Where(vd => vd.IdVehicleNavigation.Registration == registration)
+                .Select(vd => new
+                {
+                    DriverName = vd.IdDriverNavigation != null ? vd.IdDriverNavigation.IdAccountNavigation.FirstName + " " + vd.IdDriverNavigation.IdAccountNavigation.LastName : "No Driver",
+                    AssignmentType = vd.IdAssignmentTypeNavigation.Description
+                })
+                .FirstOrDefaultAsync();
+
+            if (assignment == null)
+            {
+                return NotFound("No assignment found for the given registration.");
+            }
+
+            return Ok(assignment);
+        }
+
     }
 }

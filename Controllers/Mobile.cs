@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Models;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace PUNDERO.Controllers
 {
@@ -17,73 +15,19 @@ namespace PUNDERO.Controllers
             _context = context;
         }
 
-       
-
-
-
-        // GET: api/Mobiles
+        // GET: api/Mobile
         [HttpGet]
-        public IActionResult GetMobilesCoordinator()
+        public async Task<IActionResult> GetMobiles()
         {
-            var mobiles = _context.Mobiles
-                .Include(m => m.MobileDrivers)
-                    .ThenInclude(md => md.IdDriverNavigation)
-                        .ThenInclude(d => d.IdAccountNavigation)
-                .Include(m => m.MobileDrivers)
-                    .ThenInclude(md => md.IdAssignmentTypeNavigation)
-                .Select(m => new
-                {
-                    m.IdMobile,
-                    m.PhoneNumber,
-                    m.Brand,
-                    m.Model,
-                    m.Imei,
-                    AssignedDriver = m.MobileDrivers.Select(md => new
-                    {
-                        IdDriver = md.IdDriver ?? 0,
-                        DriverName = md.IdDriverNavigation != null
-                            ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName
-                            : "Unassigned"
-                    }).FirstOrDefault() ?? new { IdDriver = 0, DriverName = "Unassigned" },
-                    AssignmentType = m.MobileDrivers.Select(md => md.IdAssignmentTypeNavigation != null
-                        ? md.IdAssignmentTypeNavigation.Description
-                        : "Unassigned").FirstOrDefault() ?? "Unassigned"
-                })
-                .ToList();
-
+            var mobiles = await _context.Mobiles.ToListAsync();
             return Ok(mobiles);
         }
 
-        // GET: api/Mobiles/{id}
+        // GET: api/Mobile/{id}
         [HttpGet("{id}")]
-        public IActionResult GetMobileCoordinator(int id)
+        public IActionResult GetMobile(int id)
         {
-            var mobile = _context.Mobiles
-                .Include(m => m.MobileDrivers)
-                    .ThenInclude(md => md.IdDriverNavigation)
-                        .ThenInclude(d => d.IdAccountNavigation)
-                .Include(m => m.MobileDrivers)
-                    .ThenInclude(md => md.IdAssignmentTypeNavigation)
-                .Where(m => m.IdMobile == id)
-                .Select(m => new
-                {
-                    m.IdMobile,
-                    m.PhoneNumber,
-                    m.Brand,
-                    m.Model,
-                    m.Imei,
-                    AssignedDriver = m.MobileDrivers.Select(md => new
-                    {
-                        IdDriver = md.IdDriver ?? 0,
-                        DriverName = md.IdDriverNavigation != null
-                            ? md.IdDriverNavigation.IdAccountNavigation.FirstName + " " + md.IdDriverNavigation.IdAccountNavigation.LastName
-                            : "Unassigned"
-                    }).FirstOrDefault() ?? new { IdDriver = 0, DriverName = "Unassigned" },
-                    AssignmentType = m.MobileDrivers.Select(md => md.IdAssignmentTypeNavigation != null
-                        ? md.IdAssignmentTypeNavigation.Description
-                        : "Unassigned").FirstOrDefault() ?? "Unassigned"
-                })
-                .FirstOrDefault();
+            var mobile = _context.Mobiles.Find(id);
 
             if (mobile == null)
             {
@@ -93,21 +37,7 @@ namespace PUNDERO.Controllers
             return Ok(mobile);
         }
 
-        // GET: api/Mobile/1234567890 (Assuming phone number is an int)
-        [HttpGet("{phoneNumber}")]
-        public IActionResult GetMobile(int phoneNumber) // Adjusted the parameter type to int
-        {
-            var mobile = _context.Mobiles.FirstOrDefault(m => m.PhoneNumber == phoneNumber);
-
-            if (mobile == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(mobile);
-        }
-
-        // POST: api/Mobiles
+        // POST: api/Mobile
         [HttpPost]
         public IActionResult PostMobile([FromBody] Mobile mobile)
         {
@@ -119,12 +49,12 @@ namespace PUNDERO.Controllers
             _context.Mobiles.Add(mobile);
             _context.SaveChanges();
 
-            return CreatedAtAction("GetMobile", new { id = mobile.IdMobile }, mobile);
+            return CreatedAtAction(nameof(GetMobile), new { id = mobile.IdMobile }, mobile);
         }
 
-        // PUT: api/Mobiles/{id}
-        [HttpPut("{id}")]
-        public IActionResult PutMobileCoordinator(int id, [FromBody] Mobile mobile)
+        // PUT: api/Mobile/{id}
+        [HttpPut("Update/{id}")]
+        public IActionResult PutMobile(int id, [FromBody] Mobile mobile)
         {
             if (!ModelState.IsValid)
             {
@@ -142,31 +72,11 @@ namespace PUNDERO.Controllers
             return NoContent();
         }
 
-        // PUT: api/Mobile/1234567890 (Assuming phone number is an int)
-        [HttpPut("{phoneNumber}")]
-        public IActionResult PutMobile(int phoneNumber, [FromBody] Mobile mobile) // Adjusted the parameter type to int
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (phoneNumber != mobile.PhoneNumber)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(mobile).State = EntityState.Modified;
-            _context.SaveChanges();
-
-            return NoContent();
-        }
-
-        // DELETE: api/Mobiles/{id}
+        // DELETE: api/Mobile/{id}
         [HttpDelete("{id}")]
         public IActionResult DeleteMobile(int id)
         {
-            var mobile = _context.Mobiles.FirstOrDefault(i => i.IdMobile == id);
+            var mobile = _context.Mobiles.Find(id);
             if (mobile == null)
             {
                 return NotFound();

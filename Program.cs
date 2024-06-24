@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using PUNDERO.Helper;
 using PUNDERO.Models;
+using PUNDERO.Services;
 using System.Text.Json.Serialization;
+using Dapper;
+using System.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,9 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
         options.JsonSerializerOptions.WriteIndented = true;
-
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
@@ -28,6 +30,14 @@ builder.Services.AddDbContext<PunderoContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+// Register the SalesDataRepository for Dapper
+builder.Services.AddTransient<SalesDataRepository>(sp =>
+    new SalesDataRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register the SalesDataService and SalesForecasting
+builder.Services.AddTransient<SalesDataService>();
+builder.Services.AddSingleton<SalesForecasting>();
 
 // CORS configuration
 builder.Services.AddCors(options =>
